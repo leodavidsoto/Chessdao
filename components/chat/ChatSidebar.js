@@ -3,64 +3,31 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Users, Crown, Swords } from 'lucide-react'
-import ChatWindow from './ChatWindow'
+import { MessageSquare, Users, Crown, Swords, Wifi, WifiOff } from 'lucide-react'
+import { useSocket } from '@/hooks/useSocket'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 
 export default function ChatSidebar({ gameMode, gameData }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: 'ChessNinja42',
-      message: 'Great move with e4! Classic opening.',
-      timestamp: new Date(Date.now() - 300000),
-      type: 'chat',
-      avatar: '🥷'
-    },
-    {
-      id: 2,
-      user: 'QueenSlayer',
-      message: 'I think d4 is stronger in this position',
-      timestamp: new Date(Date.now() - 240000),
-      type: 'chat',
-      avatar: '👑'
-    },
-    {
-      id: 3,
-      user: 'System',
-      message: 'Voting phase ends in 2 minutes!',
-      timestamp: new Date(Date.now() - 180000),
-      type: 'system'
-    },
-    {
-      id: 4,
-      user: 'KnightRider',
-      message: 'Anyone else thinking about the Spanish Opening?',
-      timestamp: new Date(Date.now() - 120000),
-      type: 'chat',
-      avatar: '♞'
-    }
-  ])
+  const { connected, onlineUsers, messages, actions } = useSocket()
+  const [filteredMessages, setFilteredMessages] = useState([])
 
-  const [onlineUsers] = useState([
-    { id: 1, name: 'ChessNinja42', status: 'online', avatar: '🥷' },
-    { id: 2, name: 'QueenSlayer', status: 'online', avatar: '👑' },
-    { id: 3, name: 'KnightRider', status: 'playing', avatar: '♞' },
-    { id: 4, name: 'RookCastle', status: 'away', avatar: '🏰' },
-    { id: 5, name: 'PawnStorm', status: 'online', avatar: '⚡' }
-  ])
+  // Filter messages based on game context
+  useEffect(() => {
+    const gameId = gameData?.gameId || gameData?.id
+    
+    if (gameMode === 'pvp' && gameId) {
+      // Show only messages for this specific game
+      setFilteredMessages(messages.filter(msg => msg.gameId === gameId))
+    } else {
+      // Show lobby/general chat (messages without gameId)
+      setFilteredMessages(messages.filter(msg => !msg.gameId))
+    }
+  }, [messages, gameMode, gameData])
 
   const handleSendMessage = (message) => {
-    const newMessage = {
-      id: Date.now(),
-      user: 'You',
-      message: message,
-      timestamp: new Date(),
-      type: 'chat',
-      avatar: '🎮'
-    }
-    setMessages(prev => [...prev, newMessage])
+    const gameId = (gameMode === 'pvp' && gameData?.gameId) ? gameData.gameId : null
+    actions.sendMessage(message, gameId)
   }
 
   const getChatTitle = () => {
@@ -68,7 +35,7 @@ export default function ChatSidebar({ gameMode, gameData }) {
       case 'community':
         return 'Community Chat'
       case 'pvp':
-        return 'Match Chat'
+        return gameData ? `Game Chat` : 'PVP Lobby'
       default:
         return 'Lobby Chat'
     }
@@ -85,6 +52,13 @@ export default function ChatSidebar({ gameMode, gameData }) {
     }
   }
 
+  const getChatDescription = () => {
+    if (gameMode === 'pvp' && gameData) {
+      return `Private game chat`
+    }
+    return `${onlineUsers.filter(u => u.isOnline).length} players online`
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Chat Header */}
@@ -93,47 +67,112 @@ export default function ChatSidebar({ gameMode, gameData }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               {getChatIcon()}
-              <CardTitle className="text-white text-lg">{getChatTitle()}</CardTitle>
+              <div>
+                <CardTitle className="text-white text-lg">{getChatTitle()}</CardTitle>
+                <p className="text-slate-400 text-sm">{getChatDescription()}</p>
+              </div>
             </div>
-            <Badge variant="outline" className="text-slate-300">
-              {onlineUsers.filter(u => u.status === 'online').length} online
-            </Badge>
+            <div className="flex items-center space-x-2">
+              {connected ? (
+                <Wifi className="h-4 w-4 text-green-400" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-400" />
+              )}
+              {gameMode !== 'pvp' && (
+                <Badge variant="outline" className="text-slate-300">
+                  {onlineUsers.filter(u => u.isOnline).length} online
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
       </Card>
+
+      {/* Connection Status */}
+      {!connected && (
+        <Card className="bg-orange-900/20 border-orange-600 border-t-0 border-b-0 rounded-none">
+          <CardContent className="p-3">
+            <p className="text-orange-300 text-xs text-center">
+              Reconnecting to chat server...
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Chat Messages */}
       <div className="flex-1 flex flex-col">
-        <MessageList messages={messages} />
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageList messages={filteredMessages} />
+        <MessageInput onSendMessage={handleSendMessage} disabled={!connected} />
       </div>
 
-      {/* Online Users */}
-      <Card className="bg-slate-800 border-slate-600 border-t-0 rounded-t-none">
-        <CardHeader className="py-3">
-          <div className="flex items-center space-x-2">
-            <Users className="h-4 w-4 text-slate-400" />
-            <span className="text-sm text-slate-400">Online Players</span>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 max-h-32 overflow-y-auto">
-          <div className="space-y-2">
-            {onlineUsers.slice(0, 5).map((user) => (
-              <div key={user.id} className="flex items-center space-x-2">
-                <span className="text-lg">{user.avatar}</span>
-                <span className="text-sm text-slate-300 flex-1 truncate">
-                  {user.name}
-                </span>
-                <div className={`w-2 h-2 rounded-full ${
-                  user.status === 'online' ? 'bg-green-400' :
-                  user.status === 'playing' ? 'bg-yellow-400' :
-                  'bg-slate-500'
-                }`} />
+      {/* Online Users (only for lobby/community) */}
+      {gameMode !== 'pvp' && (
+        <Card className="bg-slate-800 border-slate-600 border-t-0 rounded-t-none">
+          <CardHeader className="py-3">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4 text-slate-400" />
+              <span className="text-sm text-slate-400">Online Players</span>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 max-h-32 overflow-y-auto">
+            <div className="space-y-2">
+              {onlineUsers.slice(0, 8).map((user, index) => (
+                <div key={user.socketId || index} className="flex items-center space-x-2">
+                  <span className="text-lg">{user.avatar || '🎮'}</span>
+                  <span className="text-sm text-slate-300 flex-1 truncate">
+                    {user.username || `Player_${(user.id || '').slice(0, 8)}`}
+                  </span>
+                  <div className={`w-2 h-2 rounded-full ${
+                    user.isOnline ? 'bg-green-400' : 'bg-slate-500'
+                  }`} />
+                </div>
+              ))}
+              
+              {onlineUsers.length === 0 && (
+                <p className="text-slate-500 text-sm text-center py-4">
+                  No players online
+                </p>
+              )}
+              
+              {onlineUsers.length > 8 && (
+                <p className="text-slate-400 text-xs text-center pt-2">
+                  +{onlineUsers.length - 8} more players
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* PVP Game Status */}
+      {gameMode === 'pvp' && gameData && (
+        <Card className="bg-slate-800 border-slate-600 border-t-0 rounded-t-none">
+          <CardHeader className="py-3">
+            <div className="flex items-center space-x-2">
+              <Swords className="h-4 w-4 text-red-400" />
+              <span className="text-sm text-slate-400">Game Info</span>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Status:</span>
+                <span className="text-white capitalize">{gameData.gameState || 'Active'}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              {gameData.betAmount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400">Stakes:</span>
+                  <span className="text-yellow-400">{gameData.betAmount} CHESS</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Time Control:</span>
+                <span className="text-white">{gameData.timeControl || '10+0'}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

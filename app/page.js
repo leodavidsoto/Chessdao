@@ -9,9 +9,11 @@ import Lobby from '@/components/Lobby'
 import CommunityGame from '@/components/CommunityGame'
 import PvpArena from '@/components/PvpArena'
 import ChatSidebar from '@/components/chat/ChatSidebar'
+import { useSocket } from '@/hooks/useSocket'
 
 export default function App() {
   const { connected } = useWallet()
+  const { gameState } = useSocket()
   const [showLanding, setShowLanding] = useState(true)
   const [gameMode, setGameMode] = useState('lobby') // 'lobby', 'community', 'pvp'
   const [currentGame, setCurrentGame] = useState(null)
@@ -21,6 +23,14 @@ export default function App() {
       setShowLanding(false)
     }
   }, [connected])
+
+  // Update game mode when socket game state changes
+  useEffect(() => {
+    if (gameState && gameState.gameId) {
+      setGameMode('pvp')
+      setCurrentGame(gameState)
+    }
+  }, [gameState])
 
   const handleGameModeChange = (mode, gameData = null) => {
     setGameMode(mode)
@@ -68,6 +78,21 @@ export default function App() {
         {/* Right Sidebar - Chat */}
         <div className="w-80 border-l border-slate-700">
           <ChatSidebar gameMode={gameMode} gameData={currentGame} />
+        </div>
+      </div>
+
+      {/* Status Footer */}
+      <div className="bg-slate-800 border-t border-slate-700 p-2">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <div className="text-xs text-slate-400">
+            DAO Chess v1.0 - Solana Devnet
+          </div>
+          <div className="flex items-center space-x-4 text-xs text-slate-400">
+            <span>Current Mode: {gameMode.toUpperCase()}</span>
+            {currentGame && (
+              <span>Game: {currentGame.gameId || currentGame.id}</span>
+            )}
+          </div>
         </div>
       </div>
     </div>
