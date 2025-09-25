@@ -92,21 +92,38 @@ export default function ChessBoardPane({ gameMode, gameData }) {
     // Only allow moves in PVP if it's the player's turn
     if (gameMode === 'pvp' && gameState?.gameId) {
       if (!isMyTurn) {
+        console.log('Not your turn!')
         return false // Not player's turn
       }
       
-      // Make move via socket
-      const moveData = {
-        from: sourceSquare,
-        to: targetSquare,
-        promotion: 'q' // Always promote to queen for simplicity
+      // Try the move locally first to validate
+      const tempGame = new Chess(localGame.fen())
+      try {
+        const move = tempGame.move({
+          from: sourceSquare,
+          to: targetSquare,
+          promotion: 'q'
+        })
+        
+        if (move) {
+          // Move is valid, send via socket
+          const moveData = {
+            from: sourceSquare,
+            to: targetSquare,
+            promotion: 'q'
+          }
+          
+          socketActions.makeMove(gameState.gameId, moveData)
+          return true // Allow the move visually
+        }
+      } catch (error) {
+        console.log('Invalid PVP move:', error)
+        return false
       }
-      
-      socketActions.makeMove(gameState.gameId, moveData)
-      return false // Don't update local board, wait for server response
+      return false
     }
     
-    // Local/practice game
+    // Local/practice game - ALWAYS allow moves here
     try {
       const move = localGame.move({
         from: sourceSquare,
@@ -131,10 +148,13 @@ export default function ChessBoardPane({ gameMode, gameData }) {
             setWinner('draw')
           }
         }
+        
+        console.log('Move made successfully:', move.san)
         return true
       }
     } catch (error) {
       console.log('Invalid move:', error)
+      return false
     }
     return false
   }, [gameMode, gameState, isMyTurn, localGame, socketActions])
