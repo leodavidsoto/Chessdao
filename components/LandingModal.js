@@ -47,7 +47,13 @@ export default function LandingModal({ onClose }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700" />
+              {mounted ? (
+                <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-700" />
+              ) : (
+                <Button disabled className="w-full bg-purple-600">
+                  Loading...
+                </Button>
+              )}
             </CardContent>
           </Card>
 
