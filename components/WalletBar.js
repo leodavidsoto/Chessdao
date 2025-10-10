@@ -32,7 +32,11 @@ export default function WalletBar() {
     setShowTokenPurchase(true)
   }
 
-  if (!connected) {
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!connected || !mounted) {
     return null
   }
 
