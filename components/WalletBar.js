@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Crown, Coins, Trophy, Settings, RefreshCw } from 'lucide-react'
 import { useChessTokens } from '@/hooks/useChessTokens'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import TokenPurchase from './TokenPurchase'
 
 export default function WalletBar() {
   const { connected, publicKey } = useWallet()
+  const [mounted, setMounted] = useState(false)
   const { 
     chessBalance, 
     solBalance, 
