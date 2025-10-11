@@ -146,7 +146,7 @@ export default function WalletBar() {
 
       {/* Token Purchase Modal */}
       {showTokenPurchase && (
-        <TokenPurchase onClose={() => setShowTokenPurchase(false)} />
+        <TokenPurchaseV2 onClose={() => setShowTokenPurchase(false)} />
       )}
     </>
   )
