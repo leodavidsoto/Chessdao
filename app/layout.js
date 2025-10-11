@@ -3,6 +3,7 @@
 import './globals.css'
 import { SolanaWalletProvider } from '@/components/SolanaWalletProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 import { useState } from 'react'
 
 export default function RootLayout({ children }) {
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
             {children}
           </SolanaWalletProvider>
         </QueryClientProvider>
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   )
