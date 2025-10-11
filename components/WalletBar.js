@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Crown, Coins, Trophy, Settings, RefreshCw } from 'lucide-react'
 import { useChessTokens } from '@/hooks/useChessTokens'
 import { useState, useEffect } from 'react'
-import TokenPurchase from './TokenPurchase'
+import TokenPurchaseV2 from './TokenPurchaseV2'
 
 export default function WalletBar() {
   const { connected, publicKey } = useWallet()
