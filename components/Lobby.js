@@ -5,15 +5,17 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Crown, Swords, Users, Plus, TrendingUp, Clock, Coins, Zap, Trophy, Target } from 'lucide-react'
+import { Crown, Swords, Users, Plus, TrendingUp, Clock, Coins, Zap, Trophy, Target, Bot } from 'lucide-react'
 import { useSocket } from '@/hooks/useSocket'
 import { useChessTokens } from '@/hooks/useChessTokens'
+import Leaderboard from '@/components/Leaderboard'
+import PlayerStats from '@/components/PlayerStats'
 
 export default function Lobby({ onGameSelect }) {
   const { publicKey } = useWallet()
   const { connected, onlineUsers, actions: socketActions } = useSocket()
   const { chessBalance, actions: { formatChessAmount } } = useChessTokens()
-  
+
   const [activeGames] = useState([
     {
       id: 1,
@@ -50,7 +52,7 @@ export default function Lobby({ onGameSelect }) {
     },
     {
       id: 'pvp_2',
-      creator: 'QueenHunter', 
+      creator: 'QueenHunter',
       rating: 1650,
       betAmount: 75,
       timeControl: '10+0',
@@ -144,7 +146,7 @@ export default function Lobby({ onGameSelect }) {
         </h3>
         <div className="grid gap-4">
           {/* Community DAO Game */}
-          <Card 
+          <Card
             className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors cursor-pointer group"
             onClick={() => handleCreateGame('community')}
           >
@@ -168,7 +170,7 @@ export default function Lobby({ onGameSelect }) {
           </Card>
 
           {/* PVP Battle */}
-          <Card 
+          <Card
             className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors cursor-pointer group"
             onClick={() => handleCreateGame('pvp')}
           >
@@ -193,7 +195,37 @@ export default function Lobby({ onGameSelect }) {
               </div>
             </CardHeader>
           </Card>
+
+          {/* AI Practice Mode */}
+          <Card
+            className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors cursor-pointer group"
+            onClick={() => handleCreateGame('ai')}
+          >
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Bot className="h-6 w-6 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <CardTitle className="text-white">AI Practice</CardTitle>
+                    <CardDescription className="text-slate-300">
+                      Train against Stockfish engine
+                    </CardDescription>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-cyan-400 font-semibold">FREE</div>
+                  <div className="text-slate-400 text-xs">No risk</div>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
         </div>
+      </div>
+
+      {/* Player Stats and Leaderboard */}
+      <div className="mb-8 space-y-4">
+        <PlayerStats />
+        <Leaderboard />
       </div>
 
       {/* Community Games */}
@@ -204,7 +236,7 @@ export default function Lobby({ onGameSelect }) {
         </h3>
         <div className="space-y-4">
           {activeGames.filter(game => game.type === 'community').map((game) => (
-            <Card 
+            <Card
               key={game.id}
               className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors cursor-pointer"
               onClick={() => handleJoinGame(game)}
@@ -233,11 +265,11 @@ export default function Lobby({ onGameSelect }) {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge 
+                    <Badge
                       className={
                         game.status === 'voting' ? 'bg-yellow-500' :
-                        game.status === 'playing' ? 'bg-green-500' :
-                        'bg-blue-500'
+                          game.status === 'playing' ? 'bg-green-500' :
+                            'bg-blue-500'
                       }
                     >
                       {game.status}
@@ -259,7 +291,7 @@ export default function Lobby({ onGameSelect }) {
         </h3>
         <div className="space-y-3">
           {pvpMatches.map((match) => (
-            <Card 
+            <Card
               key={match.id}
               className="bg-slate-700 border-slate-600 hover:bg-slate-600 transition-colors cursor-pointer"
               onClick={() => handleJoinGame(match)}
@@ -291,7 +323,7 @@ export default function Lobby({ onGameSelect }) {
                       </div>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     className="bg-green-600 hover:bg-green-700"
                     disabled={match.betAmount > chessBalance}
                   >

@@ -4,6 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 import { useWallet } from '@solana/wallet-adapter-react'
 
+// Get WebSocket URL from environment or use current origin
+const getSocketUrl = () => {
+  if (typeof window === 'undefined') return ''
+
+  // Use environment variable if set (for mobile/production)
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL
+  }
+
+  // Fallback to current origin (for web development)
+  return window.location.origin
+}
+
 export function useSocket() {
   const { publicKey } = useWallet()
   const [socket, setSocket] = useState(null)
@@ -11,11 +24,14 @@ export function useSocket() {
   const [onlineUsers, setOnlineUsers] = useState([])
   const [messages, setMessages] = useState([])
   const [gameState, setGameState] = useState(null)
-  
+
   useEffect(() => {
+    const socketUrl = getSocketUrl()
+
     // Initialize socket connection
-    const newSocket = io({
-      autoConnect: false
+    const newSocket = io(socketUrl, {
+      autoConnect: false,
+      transports: ['websocket', 'polling']
     })
     
     // Connection events

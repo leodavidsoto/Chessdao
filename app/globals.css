@@ -2,140 +2,341 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   ChessDao - Cyber-Noir Premium Design System
+   ============================================ */
+
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap');
+
+:root {
+    /* === Primary Colors === */
+    --void-blue: #020617;
+    --midnight-navy: #0B1221;
+    --deep-space: #050B14;
+    
+    /* === Accent Colors === */
+    --electric-cyan: #2DE2E6;
+    --neon-cyan: #00D4FF;
+    --metallic-gold: #D4AF37;
+    --amber-gold: #F59E0B;
+    --neon-violet: #7D2AE8;
+    --royal-purple: #9333EA;
+    
+    /* === Text Colors === */
+    --titanium-white: #F8FAFC;
+    --steel-gray: #94A3B8;
+    --slate-400: #64748B;
+    
+    /* === Gradients === */
+    --gradient-cyan-violet: linear-gradient(135deg, #2DE2E6, #7D2AE8);
+    --gradient-gold: linear-gradient(135deg, #D4AF37, #B8860B);
+    --gradient-hero: radial-gradient(ellipse at center, #0B1221 0%, #020617 70%);
+    
+    /* === Shadows === */
+    --glow-cyan: 0 0 20px rgba(45, 226, 230, 0.3);
+    --glow-gold: 0 0 20px rgba(212, 175, 55, 0.3);
+    --glow-violet: 0 0 20px rgba(125, 42, 232, 0.3);
+    
+    /* === Borders === */
+    --border-gradient: linear-gradient(135deg, #2DE2E6, #7D2AE8, #D4AF37);
+}
+
+/* === Base Styles === */
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-        "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-        "Helvetica Neue", sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background: var(--void-blue);
+    color: var(--titanium-white);
 }
 
-code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
-        monospace;
+/* === Typography === */
+.font-display {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.05em;
 }
 
-.App {
-    text-align: center;
+.font-mono {
+    font-family: 'Roboto Mono', monospace;
 }
 
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+h1, h2, h3, .heading {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.02em;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* === Glassmorphism Cards === */
+.glass-card {
+    background: rgba(11, 18, 33, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(45, 226, 230, 0.2);
+    border-radius: 16px;
+    box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
+.glass-card-gold {
+    background: rgba(11, 18, 33, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 16px;
+    box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.glass-card-violet {
+    background: rgba(11, 18, 33, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(125, 42, 232, 0.3);
+    border-radius: 16px;
+    box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(125, 42, 232, 0.1);
+}
+
+/* === Gradient Border Cards === */
+.gradient-border {
+    position: relative;
+    background: var(--midnight-navy);
+    border-radius: 16px;
+}
+
+.gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: 16px;
+    background: var(--gradient-cyan-violet);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+/* === Buttons === */
+.btn-primary {
+    background: var(--gradient-cyan-violet);
+    color: var(--void-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--glow-cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(45, 226, 230, 0.5), 0 0 60px rgba(45, 226, 230, 0.3);
+}
+
+.btn-gold {
+    background: var(--gradient-gold);
+    color: var(--void-blue);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--glow-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.5), 0 0 60px rgba(212, 175, 55, 0.3);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--electric-cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 500;
+    padding: 12px 28px;
+    border-radius: 50px;
+    border: 1px solid var(--electric-cyan);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-outline:hover {
+    background: rgba(45, 226, 230, 0.1);
+    box-shadow: var(--glow-cyan);
+}
+
+/* === Text Gradients === */
+.text-gradient-cyan {
+    background: var(--gradient-cyan-violet);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.text-gradient-gold {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* === Glowing Text === */
+.glow-cyan {
+    text-shadow: 0 0 10px rgba(45, 226, 230, 0.5), 0 0 20px rgba(45, 226, 230, 0.3);
+}
+
+.glow-gold {
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5), 0 0 20px rgba(212, 175, 55, 0.3);
+}
+
+/* === Chess Pattern Background === */
+.chess-pattern {
+    background-image: 
+        linear-gradient(45deg, rgba(45, 226, 230, 0.02) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(45, 226, 230, 0.02) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(45, 226, 230, 0.02) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(45, 226, 230, 0.02) 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+}
+
+/* === Chain Link Divider === */
+.chain-divider {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    gap: 8px;
+    margin: 24px 0;
 }
 
-.App-link {
-    color: #61dafb;
+.chain-divider::before,
+.chain-divider::after {
+    content: '';
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(45, 226, 230, 0.5), transparent);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.chain-link {
+    width: 24px;
+    height: 12px;
+    border: 2px solid var(--electric-cyan);
+    border-radius: 6px;
+    opacity: 0.6;
 }
 
+/* === Animations === */
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: var(--glow-cyan); }
+    50% { box-shadow: 0 0 40px rgba(45, 226, 230, 0.6); }
+}
 
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
 
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+/* === Hexagonal Avatar Border === */
+.hex-avatar {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+/* === Scrollbar Styling === */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--void-blue);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--electric-cyan), var(--neon-violet));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--electric-cyan);
+}
+
+/* === Selection === */
+::selection {
+    background: rgba(45, 226, 230, 0.3);
+    color: var(--titanium-white);
+}
+
+/* === Tailwind Layer Overrides === */
 @layer base {
-  :root {
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 222.2 47.4% 11.2%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96.1%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 222.2 84% 4.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
-        --sidebar-background: 0 0% 98%;
-        --sidebar-foreground: 240 5.3% 26.1%;
-        --sidebar-primary: 240 5.9% 10%;
-        --sidebar-primary-foreground: 0 0% 98%;
-        --sidebar-accent: 240 4.8% 95.9%;
-        --sidebar-accent-foreground: 240 5.9% 10%;
-        --sidebar-border: 220 13% 91%;
-        --sidebar-ring: 217.2 91.2% 59.8%;
-    }
-  .dark {
-        --background: 222.2 84% 4.9%;
+    :root {
+        --background: 222.2 84% 2%;
         --foreground: 210 40% 98%;
         --card: 222.2 84% 4.9%;
         --card-foreground: 210 40% 98%;
         --popover: 222.2 84% 4.9%;
         --popover-foreground: 210 40% 98%;
-        --primary: 210 40% 98%;
+        --primary: 180 100% 54%;
         --primary-foreground: 222.2 47.4% 11.2%;
         --secondary: 217.2 32.6% 17.5%;
         --secondary-foreground: 210 40% 98%;
         --muted: 217.2 32.6% 17.5%;
         --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
+        --accent: 274 87% 53%;
         --accent-foreground: 210 40% 98%;
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 40% 98%;
         --border: 217.2 32.6% 17.5%;
         --input: 217.2 32.6% 17.5%;
-        --ring: 212.7 26.8% 83.9%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-        --sidebar-background: 240 5.9% 10%;
-        --sidebar-foreground: 240 4.8% 95.9%;
-        --sidebar-primary: 224.3 76.3% 48%;
-        --sidebar-primary-foreground: 0 0% 100%;
-        --sidebar-accent: 240 3.7% 15.9%;
-        --sidebar-accent-foreground: 240 4.8% 95.9%;
-        --sidebar-border: 240 3.7% 15.9%;
-        --sidebar-ring: 217.2 91.2% 59.8%;
+        --ring: 180 100% 54%;
+        --radius: 0.75rem;
     }
 }
-
-
 
 @layer base {
-  * {
-    @apply border-border;
+    * {
+        @apply border-border;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
     }
 }
+
+/* === Utility Classes === */
+.bg-void { background-color: var(--void-blue); }
+.bg-midnight { background-color: var(--midnight-navy); }
+.bg-space { background-color: var(--deep-space); }
+
+.text-cyan { color: var(--electric-cyan); }
+.text-gold { color: var(--metallic-gold); }
+.text-violet { color: var(--neon-violet); }
+.text-titanium { color: var(--titanium-white); }
+.text-steel { color: var(--steel-gray); }
+
+.border-cyan { border-color: var(--electric-cyan); }
+.border-gold { border-color: var(--metallic-gold); }
+.border-violet { border-color: var(--neon-violet); }

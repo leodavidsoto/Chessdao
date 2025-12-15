@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Coins, CreditCard, DollarSign, Zap, Gift, Crown, Star } from 'lucide-react'
 import { useChessTokens } from '@/hooks/useChessTokens'
+import { apiFetch } from '@/lib/config'
 
 export default function TokenPurchase({ onClose }) {
   const { publicKey } = useWallet()
@@ -71,11 +72,8 @@ export default function TokenPurchase({ onClose }) {
 
     try {
       // Create Stripe checkout session
-      const response = await fetch('/api/payments/checkout', {
+      const response = await apiFetch('/api/payments/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           packageId: pkg.id,
           packageName: pkg.name,
@@ -120,12 +118,9 @@ export default function TokenPurchase({ onClose }) {
 
     try {
       const tokens = Math.floor(amount / (tokenInfo?.price || 0.01))
-      
-      const response = await fetch('/api/payments/checkout', {
+
+      const response = await apiFetch('/api/payments/checkout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           packageId: 'custom',
           packageName: 'Custom Purchase',

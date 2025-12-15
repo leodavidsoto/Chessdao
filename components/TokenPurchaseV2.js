@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Coins, DollarSign, Zap, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { apiFetch } from '@/lib/config'
 
 const TREASURY_WALLET = '3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo'
 const CHESS_TOKEN_PRICE = 0.01 // $0.01 USD per CHESS token
@@ -102,9 +103,8 @@ export default function TokenPurchaseV2({ onClose }) {
       console.log('✅ Payment confirmed!')
 
       // Credit tokens via API
-      const response = await fetch('/api/payments/credit-tokens', {
+      const response = await apiFetch('/api/payments/credit-tokens', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: publicKey.toString(),
           tokens: tokens,
