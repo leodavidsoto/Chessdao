@@ -94,6 +94,30 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Token Sale Banner */}
+          <div className="token-sale-banner">
+            <div className="sale-badge">VENTA ACTIVA</div>
+            <div className="sale-content">
+              <div className="sale-info">
+                <h2>Compra Tokens CHESS</h2>
+                <p>Precio de lanzamiento: <span className="price-highlight">$0.01 USD</span> por token</p>
+                <div className="sale-features">
+                  <span>✓ Paga con SOL o USDC</span>
+                  <span>✓ Tokens instantáneos</span>
+                  <span>✓ Úsalos para apostar</span>
+                </div>
+              </div>
+              <div className="sale-stats">
+                <div className="token-price-display">
+                  <span className="token-amount">1,000</span>
+                  <span className="token-label">CHESS</span>
+                  <span className="token-equals">=</span>
+                  <span className="token-usd">$10 USD</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Features Grid */}
           <div className="features-grid">
             <div className="feature-card">
@@ -107,13 +131,13 @@ export default function Home() {
               <div className="feature-icon">⚔️</div>
               <div className="feature-content">
                 <h3>PVP con Apuestas</h3>
-                <p>Desafía a otros jugadores y apuesta tokens $GAME</p>
+                <p>Desafía a otros jugadores y apuesta tokens CHESS</p>
               </div>
             </div>
             <div className="feature-card">
               <div className="feature-icon">🏆</div>
               <div className="feature-content">
-                <h3>Tokens CHESS</h3>
+                <h3>Gana Premios</h3>
                 <p>Gana tokens reales en blockchain de Solana</p>
               </div>
             </div>
@@ -291,6 +315,124 @@ export default function Home() {
             color: #64748B;
             max-width: 500px;
             margin: 0 auto;
+          }
+
+          .token-sale-banner {
+            background: linear-gradient(135deg, rgba(45, 226, 230, 0.1), rgba(125, 42, 232, 0.1));
+            border: 2px solid rgba(212, 175, 55, 0.5);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+          }
+
+          .token-sale-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #D4AF37, #F59E0B, #D4AF37);
+            animation: shimmer 2s infinite;
+          }
+
+          @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+
+          .sale-badge {
+            position: absolute;
+            top: -1px;
+            right: 20px;
+            background: linear-gradient(135deg, #D4AF37, #F59E0B);
+            color: #020617;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            padding: 6px 16px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+          }
+
+          .sale-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+          }
+
+          .sale-info h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #F8FAFC;
+            margin: 0 0 8px;
+          }
+
+          .sale-info p {
+            color: #94A3B8;
+            margin: 0 0 12px;
+            font-size: 14px;
+          }
+
+          .price-highlight {
+            color: #D4AF37;
+            font-weight: 700;
+            font-size: 18px;
+          }
+
+          .sale-features {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+          }
+
+          .sale-features span {
+            font-size: 12px;
+            color: #48BB78;
+            background: rgba(72, 187, 120, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+          }
+
+          .token-price-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+          }
+
+          .token-amount {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #D4AF37;
+          }
+
+          .token-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            color: #94A3B8;
+          }
+
+          .token-equals {
+            color: #64748B;
+            font-size: 20px;
+          }
+
+          .token-usd {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #48BB78;
           }
 
           .features-grid {
