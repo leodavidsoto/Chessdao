@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
-import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import {
+  createTransferInstruction,
+  getAssociatedTokenAddress,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID
+} from '@solana/spl-token'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,10 +19,14 @@ import { Coins, DollarSign, Zap, CheckCircle, AlertCircle, Loader2 } from 'lucid
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/config'
 
-const TREASURY_WALLET = '3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo'
-const CHESS_TOKEN_PRICE = 0.01 // $0.01 USD per CHESS token
+const TREASURY_WALLET = process.env.NEXT_PUBLIC_TREASURY_WALLET || '3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo'
+const CHESS_TOKEN_PRICE = Number(process.env.CHESS_TOKEN_PRICE) || 0.01 // $0.01 USD per CHESS token
+const SOLANA_NETWORK = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet'
+
+// USDC Mint addresses
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' // USDC mainnet
 const USDC_DEVNET_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' // USDC devnet
+const USDC_DECIMALS = 6 // USDC has 6 decimals
 
 export default function TokenPurchaseV2({ onClose }) {
   const { publicKey, sendTransaction } = useWallet()
@@ -159,16 +170,118 @@ export default function TokenPurchaseV2({ onClose }) {
 
     try {
       const usdAmount = tokens * CHESS_TOKEN_PRICE
-      
-      toast.info('USDC payment coming soon!', {
-        description: 'Currently only SOL payments are supported'
+      const usdcMintAddress = SOLANA_NETWORK === 'mainnet-beta' ? USDC_MINT : USDC_DEVNET_MINT
+      const usdcMint = new PublicKey(usdcMintAddress)
+      const treasuryPubkey = new PublicKey(TREASURY_WALLET)
+
+      console.log(`Purchasing ${tokens} CHESS tokens for ${usdAmount} USDC`)
+
+      // Get user's USDC token account
+      const userUsdcAccount = await getAssociatedTokenAddress(
+        usdcMint,
+        publicKey
+      )
+
+      // Check if user has USDC token account and sufficient balance
+      try {
+        const accountInfo = await getAccount(connection, userUsdcAccount)
+        const balance = Number(accountInfo.amount) / Math.pow(10, USDC_DECIMALS)
+
+        if (balance < usdAmount) {
+          toast.error('Insufficient USDC balance', {
+            description: `You have ${balance.toFixed(2)} USDC, need ${usdAmount.toFixed(2)} USDC`
+          })
+          return
+        }
+      } catch (e) {
+        toast.error('No USDC token account found', {
+          description: 'Please add USDC to your wallet first'
+        })
+        return
+      }
+
+      // Get treasury's USDC token account (create if needed)
+      const treasuryUsdcAccount = await getAssociatedTokenAddress(
+        usdcMint,
+        treasuryPubkey
+      )
+
+      // Build transaction
+      const transaction = new Transaction()
+
+      // Check if treasury USDC account exists, if not add instruction to create it
+      try {
+        await getAccount(connection, treasuryUsdcAccount)
+      } catch (e) {
+        // Treasury account doesn't exist, add instruction to create it
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            publicKey,
+            treasuryUsdcAccount,
+            treasuryPubkey,
+            usdcMint
+          )
+        )
+      }
+
+      // Add transfer instruction
+      const transferAmount = Math.floor(usdAmount * Math.pow(10, USDC_DECIMALS))
+      transaction.add(
+        createTransferInstruction(
+          userUsdcAccount,
+          treasuryUsdcAccount,
+          publicKey,
+          transferAmount
+        )
+      )
+
+      // Send transaction
+      const signature = await sendTransaction(transaction, connection)
+      console.log('Transaction sent:', signature)
+
+      toast.info('Processing USDC payment...', {
+        description: 'Waiting for blockchain confirmation'
       })
 
-      // TODO: Implement USDC payment logic
-      // Will require SPL Token transfer
+      // Wait for confirmation
+      const confirmation = await connection.confirmTransaction(signature, 'confirmed')
+
+      if (confirmation.value.err) {
+        throw new Error('Transaction failed')
+      }
+
+      console.log('Payment confirmed!')
+
+      // Credit tokens via API
+      const response = await apiFetch('/api/payments/credit-tokens', {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress: publicKey.toString(),
+          tokens: tokens,
+          paymentMethod: 'USDC',
+          paymentAmount: usdAmount,
+          usdAmount: usdAmount,
+          transactionSignature: signature
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('Purchase successful!', {
+          description: `${tokens} CHESS tokens have been credited to your account`
+        })
+
+        setTimeout(() => {
+          onClose()
+          window.location.reload()
+        }, 2000)
+      } else {
+        throw new Error(result.error || 'Failed to credit tokens')
+      }
 
     } catch (error) {
-      console.error('❌ Payment error:', error)
+      console.error('Payment error:', error)
       toast.error('Payment failed', {
         description: error.message || 'Please try again'
       })
@@ -269,11 +382,12 @@ export default function TokenPurchaseV2({ onClose }) {
               </Card>
 
               <Card
-                className={`cursor-pointer transition-all border-2 opacity-50 ${
+                className={`cursor-pointer transition-all border-2 ${
                   paymentMethod === 'USDC'
                     ? 'border-blue-500 bg-blue-900/20'
-                    : 'border-slate-600 bg-slate-700'
+                    : 'border-slate-600 bg-slate-700 hover:bg-slate-600'
                 }`}
+                onClick={() => !processingTx && setPaymentMethod('USDC')}
               >
                 <CardContent className="p-4 text-center">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -281,8 +395,11 @@ export default function TokenPurchaseV2({ onClose }) {
                   </div>
                   <div className="text-white font-semibold">Pay with USDC</div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Coming Soon
+                    1 USDC = $1.00
                   </div>
+                  {paymentMethod === 'USDC' && (
+                    <Badge className="mt-2 bg-blue-500">Selected</Badge>
+                  )}
                 </CardContent>
               </Card>
             </div>
