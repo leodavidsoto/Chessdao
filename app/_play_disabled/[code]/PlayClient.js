@@ -1,6 +1,5 @@
 'use client'
 
-import { useParams } from 'next/navigation'
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { SolanaWalletProvider } from '@/components/SolanaWalletProvider'
@@ -38,10 +37,7 @@ function LoadingSpinner() {
     )
 }
 
-export default function PlayPage() {
-    const params = useParams()
-    const inviteCode = params?.code
-
+export default function PlayClient({ code }) {
     const handleBack = () => {
         window.location.href = '/'
     }
@@ -50,7 +46,7 @@ export default function PlayPage() {
         <SolanaWalletProvider>
             <Suspense fallback={<LoadingSpinner />}>
                 <InviteGame
-                    inviteCode={inviteCode}
+                    inviteCode={code}
                     onBack={handleBack}
                 />
             </Suspense>
