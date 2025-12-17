@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import CustomChess from '@/components/CustomChess'
@@ -17,15 +17,27 @@ import { useWalletSignature } from '@/hooks/useWalletSignature'
 import UserDashboard from '@/components/UserDashboard'
 import { useNotifications } from '@/hooks/useNotifications'
 import { apiFetch } from '@/lib/config'
+// TON Integration for Telegram
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
+import { useTonConnect } from '@/hooks/useTonConnect'
+import TonWalletConnect from '@/components/TonWalletConnect'
 
 /**
  * ChessComLayout - Chess.com-style main layout with DAO features and betting
+ * Supports both Solana (regular browser/mobile) and TON (Telegram Mini App)
  */
 export default function ChessComLayout() {
+  // Solana wallet (for browser/mobile)
   const { publicKey, connected } = useWallet()
   const { chessBalance, actions } = useChessTokens()
   const { unreadCount } = useNotifications()
   const { signAction, isSigning, error: signError, clearError } = useWalletSignature()
+
+  // TON wallet (for Telegram Mini App)
+  const { isInTelegram, telegramUser } = useTelegramWebApp()
+  const { isConnected: tonConnected, address: tonAddress, balance: tonBalance, actions: tonActions } = useTonConnect()
+
+  // State
   const [gameMode, setGameMode] = useState(null)
   const [difficulty, setDifficulty] = useState('medium')
   const [timeControl, setTimeControl] = useState('10+0')
@@ -35,6 +47,12 @@ export default function ChessComLayout() {
   const [pendingBetData, setPendingBetData] = useState(null)
   const [bettingType, setBettingType] = useState('pvp')
   const [currentBet, setCurrentBet] = useState(0)
+  const [showTonWallet, setShowTonWallet] = useState(false)
+
+  // Determine if wallet is connected (Solana OR TON)
+  const isWalletConnected = isInTelegram ? tonConnected : connected
+  const walletAddress = isInTelegram ? tonAddress : publicKey?.toString()
+  const displayBalance = isInTelegram ? `${tonBalance?.toFixed(2) || 0} TON` : `${actions.formatChessAmount(chessBalance)} CHESS`
 
   const gameModes = [
     {
@@ -355,7 +373,7 @@ export default function ChessComLayout() {
           <a href="#" className="nav-link active">Jugar</a>
           <a href="#" className="nav-link" onClick={() => setGameMode('dao')}>DAO</a>
           <a href="#" className="nav-link" onClick={() => setGameMode('history')}>Historial</a>
-          {connected && (
+          {isWalletConnected && (
             <a href="#" className="nav-link profile-link" onClick={() => setGameMode('dashboard')}>
               👤 Perfil
               {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
@@ -363,21 +381,50 @@ export default function ChessComLayout() {
           )}
         </nav>
         <div className="header-actions">
-          {connected ? (
-            <div className="user-info">
-              <button onClick={() => setShowTokenPurchase(true)} className="buy-tokens-btn">
-                💎 Comprar CHESS
+          {isInTelegram ? (
+            /* Telegram Mini App - show TON wallet */
+            tonConnected ? (
+              <div className="user-info">
+                <span className="ton-badge">💎 TON</span>
+                <span className="balance">💰 {tonBalance?.toFixed(2) || '0'} TON</span>
+                <span className="wallet">{tonActions.getFormattedAddress()}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowTonWallet(true)}
+                className="connect-btn ton-connect-btn"
+              >
+                💎 Conectar Wallet TON
               </button>
-              <span className="balance">💰 {actions.formatChessAmount(chessBalance)} CHESS</span>
-              <span className="wallet">{publicKey?.toString().slice(0, 8)}...</span>
-            </div>
+            )
           ) : (
-            <div className="wallet-connect-area">
-              <WalletMultiButton className="connect-btn" />
-            </div>
+            /* Browser/Mobile - show Solana/Phantom wallet */
+            connected ? (
+              <div className="user-info">
+                <button onClick={() => setShowTokenPurchase(true)} className="buy-tokens-btn">
+                  💎 Comprar CHESS
+                </button>
+                <span className="balance">💰 {actions.formatChessAmount(chessBalance)} CHESS</span>
+                <span className="wallet">{publicKey?.toString().slice(0, 8)}...</span>
+              </div>
+            ) : (
+              <div className="wallet-connect-area">
+                <WalletMultiButton className="connect-btn" />
+              </div>
+            )
           )}
         </div>
       </header>
+
+      {/* TON Wallet Modal for Telegram */}
+      {showTonWallet && (
+        <div className="ton-wallet-modal">
+          <div className="ton-wallet-overlay" onClick={() => setShowTonWallet(false)} />
+          <div className="ton-wallet-content">
+            <TonWalletConnect onConnect={() => setShowTonWallet(false)} />
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="main-content">
