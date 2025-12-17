@@ -7,6 +7,7 @@ import CustomChess from '@/components/CustomChess'
 import DAOGames from '@/components/DAOGames'
 import GameHistory from '@/components/GameHistory'
 import TokenPurchaseV2 from '@/components/TokenPurchaseV2'
+import TokenPurchaseTON from '@/components/TokenPurchaseTON'
 import BettingModal from '@/components/BettingModal'
 import DailyPuzzles from '@/components/DailyPuzzles'
 import NFTLootBoxes from '@/components/NFTLootBoxes'
@@ -569,7 +570,11 @@ export default function ChessComLayout() {
       </main>
 
       {showTokenPurchase && (
-        <TokenPurchaseV2 onClose={() => setShowTokenPurchase(false)} />
+        isInTelegram ? (
+          <TokenPurchaseTON onClose={() => setShowTokenPurchase(false)} />
+        ) : (
+          <TokenPurchaseV2 onClose={() => setShowTokenPurchase(false)} />
+        )
       )}
 
       {showBettingModal && (
