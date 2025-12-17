@@ -1,27 +1,38 @@
-# ChessDAO Deployment Guide
+# ChessDAO Deployment Guide (TON Blockchain)
 
-## Quick Start (Railway)
+## Architecture
 
-### 1. Environment Variables Required
+```
+├── Main App (Next.js) - Railway Service 1
+│   └── chessdao-production.up.railway.app
+│
+└── Telegram Bot (Node.js) - Railway Service 2
+    └── telegram-bot/bot.js
+```
 
-Set these in Railway Dashboard or via CLI:
+## 1. Main App Deployment (Railway)
+
+### Environment Variables
 
 ```bash
-# Required for production
-NEXT_PUBLIC_SOLANA_NETWORK=devnet  # or mainnet-beta
-NEXT_PUBLIC_SOLANA_RPC_URL=https://api.devnet.solana.com
-NEXT_PUBLIC_TREASURY_WALLET=3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo
-TREASURY_WALLET=3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo
+# TON Configuration
+NEXT_PUBLIC_TON_NETWORK=mainnet
+NEXT_PUBLIC_TON_RPC_URL=https://toncenter.com/api/v2/jsonRPC
+NEXT_PUBLIC_CHESS_JETTON=YOUR_JETTON_ADDRESS
 
-# Database (optional - app works with in-memory fallback)
-MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/dao_chess
+# Treasury (TON wallet)
+NEXT_PUBLIC_TREASURY_WALLET=YOUR_TON_WALLET
+TREASURY_WALLET=YOUR_TON_WALLET
+
+# Database
+MONGO_URL=mongodb+srv://user:pass@cluster.mongodb.net/chessdao
 
 # Auto-set by Railway
 PORT=3000
 NODE_ENV=production
 ```
 
-### 2. Deploy to Railway
+### Deploy Commands
 
 ```bash
 # Login to Railway
@@ -37,96 +48,82 @@ railway up
 railway logs
 ```
 
-### 3. Configure Domain
+---
+
+## 2. Telegram Bot Deployment
+
+### Option A: Same Railway Project (Recommended)
+
+1. Go to Railway Dashboard
+2. Click "+ New Service"
+3. Select "GitHub Repo" → `telegram-bot` folder
+4. Set root directory: `telegram-bot`
+5. Add environment variables:
 
 ```bash
-railway domain
+BOT_TOKEN=your_telegram_bot_token
+WEBAPP_URL=https://chessdao-production.up.railway.app
+API_URL=https://chessdao-production.up.railway.app
 ```
 
-## MongoDB Atlas Setup
+### Option B: Monorepo with Procfile
 
-1. Go to https://cloud.mongodb.com/
-2. Create new cluster (M0 free tier is fine)
-3. Create database user with read/write permissions
-4. Whitelist IP: `0.0.0.0/0` for Railway access
-5. Get connection string and add to Railway as `MONGO_URL`
+Create `Procfile.bot` in telegram-bot/:
+```
+web: node bot.js
+```
 
-### Initialize Indexes
-
-After MongoDB is connected:
+### Option C: Run Locally
 
 ```bash
-MONGO_URL=your-connection-string node scripts/setup-db-indexes.js
+cd telegram-bot
+npm install
+BOT_TOKEN=xxx WEBAPP_URL=xxx node bot.js
 ```
 
-## Token Sale Flow
+---
 
-1. User connects Phantom wallet
-2. Enters amount of CHESS tokens to buy
-3. Selects payment method (SOL or USDC)
-4. Signs transaction with wallet
-5. Backend verifies transaction on blockchain
-6. Tokens credited to user's account
+## 3. TON Token Deployment
 
-### Payment Verification
+### Deploy CHESS Jetton
 
-The `/api/payments/credit-tokens` endpoint:
-- Validates transaction signature on Solana
-- Checks treasury wallet received payment
-- Prevents duplicate transactions
-- Updates MongoDB balance (or in-memory)
-- Returns new balance to user
+Use the contracts in `/ton/contracts/`:
 
-## Mainnet Deployment Checklist
-
-- [ ] Deploy CHESS token to mainnet
-- [ ] Update `NEXT_PUBLIC_CHESS_MINT` with mainnet address
-- [ ] Set `NEXT_PUBLIC_SOLANA_NETWORK=mainnet-beta`
-- [ ] Use production RPC (Helius/QuickNode recommended)
-- [ ] Set up MongoDB Atlas production cluster
-- [ ] Configure monitoring and alerts
-- [ ] Test full payment flow with small amounts
-
-## Architecture
-
-```
-Frontend (Next.js)
-    |
-    ├── Wallet Connection (Phantom)
-    |
-    ├── API Routes (/api/*)
-    |    ├── /payments/credit-tokens
-    |    ├── /balance
-    |    ├── /transactions
-    |    └── ...
-    |
-    └── WebSocket Server (Socket.io)
-         └── Real-time game updates
-
-Backend
-    ├── Solana RPC (verify transactions)
-    ├── MongoDB (persist data)
-    └── In-memory fallback
+```bash
+cd ton
+npm install
+npm run deploy
 ```
 
-## Rate Limits
+After deployment, update:
+- `NEXT_PUBLIC_CHESS_JETTON` in Railway
 
-- Payment endpoints: 5 requests/minute
-- API endpoints: 100 requests/minute
-- Default: 200 requests/minute
+---
+
+## 4. Bot Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Welcome + Mini App |
+| `/play` | Open game |
+| `/invite` | Get referral link |
+| `/balance` | Check balance |
+| `/link <wallet>` | Link TON wallet |
+| `/help` | All commands |
+
+---
 
 ## Troubleshooting
 
-### Service not starting
-- Check Railway logs for build errors
-- Verify all environment variables set
-- Ensure `npm run build` works locally
+### Bot not updating
+- Verify bot token is correct
+- Check Railway logs for bot service
+- Redeploy bot service manually
 
-### Payments not crediting
-- Check Solana transaction confirmed
-- Verify treasury wallet address correct
-- Check MongoDB connection (falls back to memory)
+### TON Connect issues
+- Check `tonconnect-manifest.json` is accessible
+- Verify WEBAPP_URL matches your domain
 
-### WebSocket disconnections
-- Ensure CORS_ORIGINS set correctly
-- Check Railway internal networking
+### Database connection
+- Whitelist Railway IPs in MongoDB Atlas
+- Use `0.0.0.0/0` for development
