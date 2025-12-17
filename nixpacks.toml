@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "python311"]
+nixPkgs = ["nodejs_20", "python311", "gcc", "gnumake", "pkg-config", "libudev-zero"]
 
 [phases.install]
 cmds = ["npm ci --legacy-peer-deps || npm install --legacy-peer-deps"]
