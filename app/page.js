@@ -5,13 +5,17 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import ChessComLayout from '@/components/ChessComLayout'
 import { usePhantomDeeplink } from '@/hooks/usePhantomDeeplink'
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
+import TelegramWalletConnect from '@/components/TelegramWalletConnect'
 
 export default function Home() {
   const { connected, publicKey } = useWallet()
   const phantom = usePhantomDeeplink()
+  const telegram = useTelegramWebApp()
   const [showApp, setShowApp] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [telegramConnection, setTelegramConnection] = useState(null)
 
   useEffect(() => {
     setMounted(true)
@@ -21,10 +25,17 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    if (connected || phantom.connected) {
+    if (connected || phantom.connected || telegramConnection) {
       setShowApp(true)
     }
-  }, [connected, phantom.connected])
+  }, [connected, phantom.connected, telegramConnection])
+
+  // Handle Telegram wallet connection
+  const handleTelegramConnect = (connectionData) => {
+    console.log('Telegram connected:', connectionData)
+    setTelegramConnection(connectionData)
+    setShowApp(true)
+  }
 
   if (!mounted) {
     return (
@@ -164,7 +175,12 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="cta-section">
-            {isMobile ? (
+            {telegram.isInTelegram ? (
+              /* Telegram Mini App - show alternative connection */
+              <div className="telegram-connect-wrapper">
+                <TelegramWalletConnect onConnect={handleTelegramConnect} />
+              </div>
+            ) : isMobile ? (
               <>
                 <button
                   onClick={phantom.connect}
@@ -190,9 +206,11 @@ export default function Home() {
                 )}
               </>
             )}
-            <button onClick={() => setShowApp(true)} className="guest-button">
-              Jugar como Invitado
-            </button>
+            {!telegram.isInTelegram && (
+              <button onClick={() => setShowApp(true)} className="guest-button">
+                Jugar como Invitado
+              </button>
+            )}
           </div>
 
           {/* Stats */}
