@@ -4,22 +4,27 @@ import { useState, useEffect } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import ChessComLayout from '@/components/ChessComLayout'
-import Image from 'next/image'
+import { usePhantomDeeplink } from '@/hooks/usePhantomDeeplink'
 
 export default function Home() {
   const { connected, publicKey } = useWallet()
+  const phantom = usePhantomDeeplink()
   const [showApp, setShowApp] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+    // Detect mobile/Android WebView
+    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    setIsMobile(mobile)
   }, [])
 
   useEffect(() => {
-    if (connected) {
+    if (connected || phantom.connected) {
       setShowApp(true)
     }
-  }, [connected])
+  }, [connected, phantom.connected])
 
   if (!mounted) {
     return (
@@ -159,11 +164,31 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="cta-section">
-            <WalletMultiButton className="wallet-button" />
-            {connected && (
-              <div className="connected-info">
-                ✅ Conectado: {publicKey?.toString().slice(0, 8)}...
-              </div>
+            {isMobile ? (
+              <>
+                <button
+                  onClick={phantom.connect}
+                  className="phantom-mobile-button"
+                  disabled={phantom.connecting}
+                >
+                  <img src="https://phantom.app/img/phantom-icon-purple.svg" alt="Phantom" className="phantom-icon" />
+                  {phantom.connecting ? 'Conectando...' : 'Conectar con Phantom'}
+                </button>
+                {phantom.connected && (
+                  <div className="connected-info">
+                    ✅ Conectado: {phantom.publicKey?.toString().slice(0, 8)}...
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <WalletMultiButton className="wallet-button" />
+                {connected && (
+                  <div className="connected-info">
+                    ✅ Conectado: {publicKey?.toString().slice(0, 8)}...
+                  </div>
+                )}
+              </>
             )}
             <button onClick={() => setShowApp(true)} className="guest-button">
               Jugar como Invitado
@@ -558,6 +583,41 @@ export default function Home() {
             background: rgba(45, 226, 230, 0.1);
             border-color: #2DE2E6;
             box-shadow: 0 0 20px rgba(45, 226, 230, 0.2);
+          }
+
+          .phantom-mobile-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 320px;
+            height: 56px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #AB9FF2, #7C3AED);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+          }
+
+          .phantom-mobile-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 50px rgba(124, 58, 237, 0.6);
+          }
+
+          .phantom-mobile-button:active {
+            transform: translateY(0);
+          }
+
+          .phantom-icon {
+            width: 24px;
+            height: 24px;
           }
 
           .manual-connect-button {

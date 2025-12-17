@@ -4,8 +4,8 @@
     "webDir": "out",
     "bundledWebRuntime": false,
     "server": {
-        "androidScheme": "https",
-        "allowNavigation": ["*"]
+        "cleartext": true,
+        "androidScheme": "https"
     },
     "plugins": {
         "SplashScreen": {
@@ -22,6 +22,7 @@
     },
     "android": {
         "allowMixedContent": true,
-        "backgroundColor": "#020617"
+        "backgroundColor": "#020617",
+        "webContentsDebuggingEnabled": true
     }
 }

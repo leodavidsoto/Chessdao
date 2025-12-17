@@ -53,7 +53,12 @@ export default function RootLayout({ children }) {
             </SolanaWalletProvider>
           </QueryClientProvider>
         ) : (
-          <div className="min-h-screen bg-slate-900" />
+          <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-slate-400 font-mono tracking-wider">Initializing ChessDAO...</p>
+            </div>
+          </div>
         )}
         <Toaster position="top-right" richColors />
       </body>

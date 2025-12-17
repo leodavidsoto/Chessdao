@@ -6,6 +6,8 @@ const nextConfig = {
   },
   // Trailing slash needed for static export to work properly
   trailingSlash: process.env.NEXT_OUTPUT === 'export',
+  // Allow dev origins for mobile testing
+  allowedDevOrigins: ['192.168.1.90', 'localhost', '127.0.0.1'],
   experimental: {
     serverComponentsExternalPackages: ['mongodb'],
   },
