@@ -125,6 +125,41 @@ export function useTelegramWebApp() {
         }
     }, [webApp])
 
+    // Share to Telegram Stories (v7.8+)
+    const shareToStory = useCallback(async (mediaUrl, params = {}) => {
+        if (webApp?.shareToStory) {
+            try {
+                await webApp.shareToStory(mediaUrl, params)
+                return true
+            } catch (err) {
+                console.error('Story share error:', err)
+                return false
+            }
+        }
+        return false
+    }, [webApp])
+
+    // Open Telegram link
+    const openLink = useCallback((url, options = {}) => {
+        if (webApp?.openLink) {
+            webApp.openLink(url, options)
+        } else if (webApp?.openTelegramLink && url.includes('t.me')) {
+            webApp.openTelegramLink(url)
+        } else {
+            window.open(url, '_blank')
+        }
+    }, [webApp])
+
+    // Share URL via Telegram
+    const shareUrl = useCallback((url, text = '') => {
+        const shareLink = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+        if (webApp?.openTelegramLink) {
+            webApp.openTelegramLink(shareLink)
+        } else {
+            window.open(shareLink, '_blank')
+        }
+    }, [webApp])
+
     return {
         isInTelegram,
         isReady,
@@ -133,6 +168,8 @@ export function useTelegramWebApp() {
         startParam,
         // Helper to extract referral code from startParam
         referralCode: startParam?.startsWith('REF_') ? startParam.substring(4) : null,
+        // Check if Stories are supported
+        supportsStories: !!webApp?.shareToStory,
         actions: {
             showMainButton,
             hideMainButton,
@@ -140,7 +177,11 @@ export function useTelegramWebApp() {
             showConfirm,
             close,
             hapticFeedback,
+            shareToStory,
+            openLink,
+            shareUrl,
         }
     }
 }
+
 
