@@ -343,7 +343,11 @@ export default function ChessComLayout() {
         </main>
 
         {showTokenPurchase && (
-          <TokenPurchaseV2 onClose={() => setShowTokenPurchase(false)} />
+          isInTelegram ? (
+            <TokenPurchaseTON onClose={() => setShowTokenPurchase(false)} />
+          ) : (
+            <TokenPurchaseV2 onClose={() => setShowTokenPurchase(false)} />
+          )
         )}
 
         <style jsx>{`

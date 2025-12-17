@@ -47,54 +47,60 @@ export default function TokenPurchaseTON({ onClose }) {
 
         setLoading(true)
         try {
-            // Create invoice via Telegram WebApp
-            const invoiceParams = {
-                title: `${pkg.chess + pkg.bonus} CHESS Tokens`,
-                description: `Compra ${pkg.chess} CHESS${pkg.bonus ? ` + ${pkg.bonus} bonus` : ''} para jugar en ChessDAO`,
-                payload: JSON.stringify({
-                    type: 'chess_purchase',
-                    chess: pkg.chess,
-                    bonus: pkg.bonus || 0,
+            // Try to create invoice via our API
+            const response = await fetch('/api/payments/stars/invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     stars: pkg.stars,
-                    userId: telegramUser?.id
-                }),
-                provider_token: '', // Empty for Telegram Stars
-                currency: 'XTR', // XTR = Telegram Stars
-                prices: [{ label: 'CHESS Tokens', amount: pkg.stars }]
-            }
+                    chess: pkg.chess + (pkg.bonus || 0),
+                    telegramUserId: telegramUser?.id
+                })
+            })
 
-            // Open Telegram payment
-            if (webApp.openInvoice) {
-                webApp.openInvoice(
-                    `https://t.me/$bot_username?start=buy_${pkg.stars}`,
-                    (status) => {
-                        if (status === 'paid') {
-                            toast.success('¡Compra exitosa!', {
-                                description: `Has recibido ${pkg.chess + pkg.bonus} CHESS tokens`
-                            })
-                            setTimeout(() => {
-                                onClose()
-                                window.location.reload()
-                            }, 2000)
-                        } else if (status === 'cancelled') {
-                            toast.info('Compra cancelada')
-                        } else if (status === 'failed') {
-                            toast.error('Error en el pago')
-                        }
-                        setLoading(false)
+            const data = await response.json()
+
+            if (data.invoiceLink && webApp.openInvoice) {
+                // Open native Telegram invoice
+                webApp.openInvoice(data.invoiceLink, (status) => {
+                    if (status === 'paid') {
+                        toast.success('¡Compra exitosa!', {
+                            description: `Has recibido ${pkg.chess + (pkg.bonus || 0)} CHESS tokens`
+                        })
+                        setTimeout(() => {
+                            onClose()
+                            window.location.reload()
+                        }, 2000)
+                    } else if (status === 'cancelled') {
+                        toast.info('Compra cancelada')
+                    } else if (status === 'failed') {
+                        toast.error('Error en el pago')
                     }
-                )
+                    setLoading(false)
+                })
             } else {
                 // Fallback: Open bot with /buy command
-                toast.info('Abriendo bot de pagos...', {
-                    description: 'Usa el comando /buy en el bot para comprar con Stars'
+                toast.info('Abriendo opciones de pago...', {
+                    description: 'Usa el comando /buy en @ChessDAObot'
                 })
-                window.open('https://t.me/ChessDAObot?start=buy', '_blank')
+
+                // Open bot chat with buy command
+                if (webApp.openTelegramLink) {
+                    webApp.openTelegramLink(`https://t.me/ChessDAObot?start=buy_${pkg.stars}`)
+                } else {
+                    window.open(`https://t.me/ChessDAObot?start=buy_${pkg.stars}`, '_blank')
+                }
                 setLoading(false)
             }
         } catch (error) {
             console.error('Stars purchase error:', error)
-            toast.error('Error al procesar el pago')
+            // Fallback to bot
+            toast.info('Abriendo bot de pagos...')
+            if (webApp?.openTelegramLink) {
+                webApp.openTelegramLink(`https://t.me/ChessDAObot?start=buy_${pkg.stars}`)
+            } else {
+                window.open(`https://t.me/ChessDAObot?start=buy_${pkg.stars}`, '_blank')
+            }
             setLoading(false)
         }
     }
@@ -162,8 +168,8 @@ export default function TokenPurchaseTON({ onClose }) {
                                 <Card
                                     key={idx}
                                     className={`cursor-pointer transition-all border-2 ${selectedPackage === pkg
-                                            ? 'border-yellow-500 bg-yellow-900/20'
-                                            : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                                        ? 'border-yellow-500 bg-yellow-900/20'
+                                        : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
                                         }`}
                                     onClick={() => setSelectedPackage(pkg)}
                                 >
@@ -229,8 +235,8 @@ export default function TokenPurchaseTON({ onClose }) {
                                 <Card
                                     key={idx}
                                     className={`cursor-pointer transition-all border-2 ${selectedPackage === pkg
-                                            ? 'border-cyan-500 bg-cyan-900/20'
-                                            : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                                        ? 'border-cyan-500 bg-cyan-900/20'
+                                        : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
                                         } ${!isConnected ? 'opacity-50' : ''}`}
                                     onClick={() => isConnected && setSelectedPackage(pkg)}
                                 >
