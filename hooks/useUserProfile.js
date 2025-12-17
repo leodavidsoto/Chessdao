@@ -2,13 +2,28 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
+import { useTonConnect } from '@/hooks/useTonConnect'
 import { apiFetch } from '@/lib/config'
 
 /**
  * Hook para manejar el perfil del usuario
+ * Soporta tanto Solana (browser) como TON (Telegram)
  */
 export function useUserProfile() {
-    const { publicKey, connected } = useWallet()
+    // Solana wallet
+    const { publicKey, connected: solanaConnected } = useWallet()
+
+    // TON wallet (for Telegram)
+    const { isInTelegram, telegramUser } = useTelegramWebApp()
+    const { address: tonAddress, isConnected: tonConnected } = useTonConnect()
+
+    // Determine which wallet to use
+    const isConnected = isInTelegram ? tonConnected : solanaConnected
+    const walletAddress = isInTelegram
+        ? tonAddress
+        : publicKey?.toString()
+
     const [profile, setProfile] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
@@ -16,7 +31,7 @@ export function useUserProfile() {
 
     // Fetch profile
     const fetchProfile = useCallback(async () => {
-        if (!connected || !publicKey) {
+        if (!isConnected || !walletAddress) {
             setProfile(null)
             return
         }
@@ -25,7 +40,7 @@ export function useUserProfile() {
         setError(null)
 
         try {
-            const res = await apiFetch(`/api/user/profile?wallet=${publicKey.toString()}`)
+            const res = await apiFetch(`/api/user/profile?wallet=${walletAddress}`)
             const data = await res.json()
 
             if (res.ok) {
@@ -40,11 +55,11 @@ export function useUserProfile() {
         } finally {
             setLoading(false)
         }
-    }, [connected, publicKey])
+    }, [isConnected, walletAddress])
 
     // Create/update profile
     const saveProfile = useCallback(async (profileData) => {
-        if (!connected || !publicKey) {
+        if (!isConnected || !walletAddress) {
             return { success: false, error: 'Wallet not connected' }
         }
 
@@ -53,7 +68,7 @@ export function useUserProfile() {
             const res = await apiFetch('/api/user/profile', {
                 method,
                 body: JSON.stringify({
-                    walletAddress: publicKey.toString(),
+                    walletAddress: walletAddress,
                     ...profileData
                 })
             })
@@ -70,7 +85,7 @@ export function useUserProfile() {
             console.error('Error saving profile:', err)
             return { success: false, error: err.message }
         }
-    }, [connected, publicKey, isNewUser, fetchProfile])
+    }, [isConnected, walletAddress, isNewUser, fetchProfile])
 
     // Update settings
     const updateSettings = useCallback(async (settings) => {
