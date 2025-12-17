@@ -461,12 +461,20 @@ export default function ChessComLayout() {
                 <span className="wallet">{tonActions.getFormattedAddress()}</span>
               </div>
             ) : (
-              <button
-                onClick={() => setShowTonWallet(true)}
-                className="connect-btn ton-connect-btn"
-              >
-                💎 Conectar Wallet TON
-              </button>
+              <div className="telegram-actions">
+                <button
+                  onClick={() => setShowTokenPurchase(true)}
+                  className="buy-tokens-btn"
+                >
+                  ⭐ Comprar CHESS
+                </button>
+                <button
+                  onClick={() => setShowTonWallet(true)}
+                  className="connect-btn ton-connect-btn"
+                >
+                  💎 Conectar TON
+                </button>
+              </div>
             )
           ) : (
             /* Browser/Mobile - show Solana/Phantom wallet */
@@ -799,6 +807,12 @@ export default function ChessComLayout() {
           background: linear-gradient(135deg, #2DE2E6, #7D2AE8) !important;
           font-family: 'Orbitron', sans-serif !important;
           border-radius: 25px !important;
+        }
+
+        .telegram-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
         }
         
         .connect-btn {
