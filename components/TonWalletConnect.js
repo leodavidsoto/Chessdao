@@ -27,20 +27,7 @@ export default function TonWalletConnect({ onConnect }) {
     const { actions: telegramActions } = useTelegramWebApp()
     const [showDetails, setShowDetails] = useState(false)
 
-    // Show loading while SDK initializes
-    if (!isInitialized) {
-        return (
-            <Card className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-cyan-500/30 backdrop-blur-sm">
-                <CardContent className="p-8 text-center">
-                    <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
-                    <p className="text-slate-300">Inicializando TON Connect...</p>
-                    <p className="text-xs text-slate-500 mt-2">Esto puede tomar unos segundos</p>
-                </CardContent>
-            </Card>
-        )
-    }
-
-    // Notify parent when connected
+    // Notify parent when connected - this MUST be before any conditional returns
     useEffect(() => {
         if (isConnected && address) {
             onConnect?.({
@@ -53,20 +40,39 @@ export default function TonWalletConnect({ onConnect }) {
     }, [isConnected, address, balance, telegramUser, onConnect])
 
     const handleConnect = async () => {
-        telegramActions.hapticFeedback('light')
+        if (telegramActions?.hapticFeedback) {
+            telegramActions.hapticFeedback('light')
+        }
         await actions.connect()
     }
 
     const handleDisconnect = async () => {
-        telegramActions.hapticFeedback('light')
+        if (telegramActions?.hapticFeedback) {
+            telegramActions.hapticFeedback('light')
+        }
         await actions.disconnect()
         toast.info('Wallet desconectada')
     }
 
     const handleRefreshBalance = async () => {
-        telegramActions.hapticFeedback('light')
+        if (telegramActions?.hapticFeedback) {
+            telegramActions.hapticFeedback('light')
+        }
         await actions.refreshBalance()
         toast.success('Balance actualizado')
+    }
+
+    // Show loading while SDK initializes
+    if (!isInitialized) {
+        return (
+            <Card className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-cyan-500/30 backdrop-blur-sm">
+                <CardContent className="p-8 text-center">
+                    <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-300">Inicializando TON Connect...</p>
+                    <p className="text-xs text-slate-500 mt-2">Esto puede tomar unos segundos</p>
+                </CardContent>
+            </Card>
+        )
     }
 
     // Connected state
@@ -188,7 +194,7 @@ export default function TonWalletConnect({ onConnect }) {
                 >
                     {isConnecting ? (
                         <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-3" />
+                            <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                             Conectando...
                         </>
                     ) : (
