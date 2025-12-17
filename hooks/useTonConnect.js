@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTelegramWebApp } from './useTelegramWebApp'
 
 /**
- * Simplified TON Connect hook for Telegram Mini App
- * Uses TonConnect button element directly instead of complex UI
+ * TON Connect hook for Telegram Mini App
+ * Optimized for Telegram WebView environment with proper redirect handling
  */
 export function useTonConnect() {
     const [isConnected, setIsConnected] = useState(false)
@@ -14,8 +14,13 @@ export function useTonConnect() {
     const [balance, setBalance] = useState(null)
     const [error, setError] = useState(null)
     const [isInitialized, setIsInitialized] = useState(false)
+    const [connectionTimedOut, setConnectionTimedOut] = useState(false)
     const tonConnectRef = useRef(null)
+    const connectionTimeoutRef = useRef(null)
     const { isInTelegram, telegramUser } = useTelegramWebApp()
+
+    // Connection timeout in ms (15 seconds)
+    const CONNECTION_TIMEOUT = 15000
 
     // Initialize TON Connect
     useEffect(() => {
@@ -27,11 +32,25 @@ export function useTonConnect() {
                 const TonConnectModule = await import('@tonconnect/ui')
                 const TonConnectUI = TonConnectModule.TonConnectUI
 
-                console.log('🔷 Creating TonConnectUI instance...')
+                console.log('🔷 Creating TonConnectUI instance...', { isInTelegram })
 
-                const tonConnect = new TonConnectUI({
-                    manifestUrl: 'https://chessdao-production.up.railway.app/tonconnect-manifest.json'
-                })
+                // Configure for Telegram Mini App environment
+                const config = {
+                    manifestUrl: 'https://chessdao-production.up.railway.app/tonconnect-manifest.json',
+                    // Enable connection restoration for better UX
+                    restoreConnection: true
+                }
+
+                // Add Telegram Mini App specific configuration
+                if (isInTelegram) {
+                    config.actionsConfiguration = {
+                        // Return URL for Telegram Mini App - required for wallet apps to redirect back
+                        twaReturnUrl: 'https://t.me/ChessDAObot/app'
+                    }
+                    console.log('🔷 Telegram Mini App detected, using twaReturnUrl')
+                }
+
+                const tonConnect = new TonConnectUI(config)
 
                 // Subscribe to status changes
                 tonConnect.onStatusChange((wallet) => {
@@ -90,6 +109,9 @@ export function useTonConnect() {
         return () => {
             // Cleanup
             tonConnectRef.current = null
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current)
+            }
         }
     }, [])
 
@@ -123,18 +145,42 @@ export function useTonConnect() {
             return
         }
 
+        // Clear any previous timeout
+        if (connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current)
+        }
+
         setIsConnecting(true)
+        setConnectionTimedOut(false)
         setError(null)
 
+        // Set connection timeout to prevent infinite loading
+        connectionTimeoutRef.current = setTimeout(() => {
+            if (!isConnected) {
+                console.log('🔷 Connection timeout - closing modal')
+                setConnectionTimedOut(true)
+                setIsConnecting(false)
+                setError('Tiempo de conexión agotado. Intenta de nuevo.')
+                try {
+                    tc.closeModal()
+                } catch (e) {
+                    // Modal might already be closed
+                }
+            }
+        }, CONNECTION_TIMEOUT)
+
         try {
-            console.log('🔷 Opening TON Connect modal...')
+            console.log('🔷 Opening TON Connect modal...', { isInTelegram })
             await tc.openModal()
         } catch (err) {
             console.error('❌ Connect error:', err)
             setError(`Error de conexión: ${err.message}`)
             setIsConnecting(false)
+            if (connectionTimeoutRef.current) {
+                clearTimeout(connectionTimeoutRef.current)
+            }
         }
-    }, [])
+    }, [isConnected, isInTelegram])
 
     // Disconnect
     const disconnect = useCallback(async () => {
@@ -176,10 +222,18 @@ export function useTonConnect() {
         }
     }, [address])
 
+    // Retry connection (resets timeout state)
+    const retry = useCallback(() => {
+        setConnectionTimedOut(false)
+        setError(null)
+        connect()
+    }, [connect])
+
     return {
         isConnected,
         isConnecting,
         isInitialized,
+        connectionTimedOut,
         address,
         balance,
         error,
@@ -189,7 +243,8 @@ export function useTonConnect() {
             connect,
             disconnect,
             refreshBalance,
-            getFormattedAddress
+            getFormattedAddress,
+            retry
         }
     }
 }

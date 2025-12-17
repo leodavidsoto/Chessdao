@@ -31,6 +31,8 @@ import { useChallenges } from '@/hooks/useChallenges'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useGameTokens } from '@/hooks/useGameTokens'
 import { useChessTokens } from '@/hooks/useChessTokens'
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
+import { useTonConnect } from '@/hooks/useTonConnect'
 import ProfileEditor from './ProfileEditor'
 import FriendsList from './FriendsList'
 import ChallengeModal from './ChallengeModal'
@@ -39,6 +41,15 @@ import TokenSwap from './TokenSwap'
 
 export default function UserDashboard({ onBack }) {
     const { publicKey, connected, disconnect } = useWallet()
+
+    // TON wallet for Telegram Mini App
+    const { isInTelegram } = useTelegramWebApp()
+    const { isConnected: tonConnected, address: tonAddress, actions: tonActions } = useTonConnect()
+
+    // Determine if ANY wallet is connected
+    const isWalletConnected = isInTelegram ? tonConnected : connected
+    const walletAddress = isInTelegram ? tonAddress : publicKey?.toString()
+
     const { profile, loading: profileLoading, isNewUser } = useUserProfile()
     const { friends, onlineFriends, pendingIncoming, counts: friendCounts } = useFriends()
     const { incoming: pendingChallenges, actions: challengeActions } = useChallenges()
@@ -59,13 +70,24 @@ export default function UserDashboard({ onBack }) {
         }
     }, [isNewUser, profileLoading])
 
-    if (!connected) {
+    // Handle disconnect for both Solana and TON
+    const handleDisconnect = () => {
+        if (isInTelegram) {
+            tonActions.disconnect()
+        } else {
+            disconnect()
+        }
+        onBack()
+    }
+
+    if (!isWalletConnected) {
         return (
             <div className="flex items-center justify-center h-96">
                 <Card className="bg-slate-800 border-slate-700 p-8 text-center">
                     <User className="w-16 h-16 mx-auto mb-4 text-slate-500" />
-                    <h2 className="text-xl text-white mb-2">Conecta tu Wallet</h2>
-                    <p className="text-slate-400">Conecta tu wallet para acceder a tu perfil</p>
+                    <h2 className="text-xl text-white mb-2">Connect Your Wallet</h2>
+                    <p className="text-slate-400">Connect your wallet to access your profile</p>
+                    <Button onClick={onBack} className="mt-4">← Back</Button>
                 </Card>
             </div>
         )
@@ -112,7 +134,7 @@ export default function UserDashboard({ onBack }) {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => { disconnect(); onBack(); }}
+                            onClick={handleDisconnect}
                             className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:text-red-300 font-semibold"
                         >
                             <LogOut className="h-4 w-4 mr-2" />
@@ -136,7 +158,7 @@ export default function UserDashboard({ onBack }) {
                                             {profile?.profile?.username || 'Nuevo Usuario'}
                                         </h2>
                                         <p className="text-sm text-purple-200/70 font-mono">
-                                            {publicKey?.toString().slice(0, 8)}...
+                                            {walletAddress?.slice(0, 8)}...
                                         </p>
                                         {profile?.status?.isOnline && (
                                             <Badge className="mt-1 bg-green-500 text-white font-semibold">🟢 Online</Badge>

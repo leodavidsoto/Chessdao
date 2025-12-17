@@ -5,7 +5,7 @@ import { useTonConnect } from '@/hooks/useTonConnect'
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Wallet, CheckCircle, ExternalLink, RefreshCw, LogOut, Loader2 } from 'lucide-react'
+import { Wallet, CheckCircle, ExternalLink, RefreshCw, LogOut, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -17,6 +17,7 @@ export default function TonWalletConnect({ onConnect }) {
         isConnected,
         isConnecting,
         isInitialized,
+        connectionTimedOut,
         address,
         balance,
         error,
@@ -205,10 +206,26 @@ export default function TonWalletConnect({ onConnect }) {
                     )}
                 </Button>
 
-                {/* Error display */}
+                {/* Error display with retry option */}
                 {error && (
-                    <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-3">
-                        <p className="text-sm text-red-300">{error}</p>
+                    <div className="bg-red-900/30 border border-red-500/30 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm text-red-300">{error}</p>
+                                {connectionTimedOut && (
+                                    <Button
+                                        onClick={() => actions.retry()}
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-3 border-red-500/30 text-red-300 hover:bg-red-500/10"
+                                    >
+                                        <RefreshCw className="w-4 h-4 mr-2" />
+                                        Reintentar
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 

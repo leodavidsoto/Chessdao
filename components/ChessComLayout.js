@@ -12,15 +12,18 @@ import DailyPuzzles from '@/components/DailyPuzzles'
 import NFTLootBoxes from '@/components/NFTLootBoxes'
 import InviteGame from '@/components/InviteGame'
 import SignatureModal from '@/components/SignatureModal'
+import GameCarousel from '@/components/GameCarousel'
 import { useChessTokens } from '@/hooks/useChessTokens'
 import { useWalletSignature } from '@/hooks/useWalletSignature'
 import UserDashboard from '@/components/UserDashboard'
 import { useNotifications } from '@/hooks/useNotifications'
 import { apiFetch } from '@/lib/config'
+import { getTranslation } from '@/lib/translations'
 // TON Integration for Telegram
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 import { useTonConnect } from '@/hooks/useTonConnect'
 import TonWalletConnect from '@/components/TonWalletConnect'
+import ReferralCard from '@/components/ReferralCard'
 
 /**
  * ChessComLayout - Chess.com-style main layout with DAO features and betting
@@ -37,6 +40,28 @@ export default function ChessComLayout() {
   const { isInTelegram, telegramUser } = useTelegramWebApp()
   const { isConnected: tonConnected, address: tonAddress, balance: tonBalance, actions: tonActions } = useTonConnect()
 
+  // Language state (persist to localStorage)
+  const [language, setLanguage] = useState('en')
+  const t = getTranslation(language)
+
+  // Load language from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('chessdao_lang')
+      if (saved && (saved === 'en' || saved === 'es')) {
+        setLanguage(saved)
+      }
+    }
+  }, [])
+
+  const toggleLanguage = () => {
+    const newLang = language === 'en' ? 'es' : 'en'
+    setLanguage(newLang)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('chessdao_lang', newLang)
+    }
+  }
+
   // State
   const [gameMode, setGameMode] = useState(null)
   const [difficulty, setDifficulty] = useState('medium')
@@ -48,26 +73,36 @@ export default function ChessComLayout() {
   const [bettingType, setBettingType] = useState('pvp')
   const [currentBet, setCurrentBet] = useState(0)
   const [showTonWallet, setShowTonWallet] = useState(false)
+  const [showReferral, setShowReferral] = useState(false)
 
   // Determine if wallet is connected (Solana OR TON)
   const isWalletConnected = isInTelegram ? tonConnected : connected
   const walletAddress = isInTelegram ? tonAddress : publicKey?.toString()
   const displayBalance = isInTelegram ? `${tonBalance?.toFixed(2) || 0} TON` : `${actions.formatChessAmount(chessBalance)} CHESS`
 
-  const gameModes = [
+  // Carousel 1: Game Modes (in order: Quick, AI, PvP$, DAO$, Friend)
+  const gameModesCarousel1 = [
+    {
+      id: 'blitz',
+      icon: '⚡',
+      title: t('quickMatch'),
+      description: t('quickMatchDesc'),
+      color: '#ed8936',
+      popular: true
+    },
     {
       id: 'ai',
       icon: '🤖',
-      title: 'Jugar vs Computadora',
-      description: 'Elige la dificultad y juega contra IA',
+      title: t('vsAI'),
+      description: t('vsAIDesc'),
       color: '#48bb78',
       popular: true
     },
     {
       id: 'pvp_bet',
       icon: '⚔️',
-      title: 'PvP con Apuesta',
-      description: 'Apuesta CHESS y juega contra otro jugador',
+      title: t('pvpBet'),
+      description: t('pvpBetDesc'),
       color: '#f56565',
       popular: true,
       requiresWallet: true
@@ -75,8 +110,8 @@ export default function ChessComLayout() {
     {
       id: 'dao_bet',
       icon: '🏛️',
-      title: 'DAO con Apuesta',
-      description: 'Apuesta y vota movimientos en equipo',
+      title: t('daoBet'),
+      description: t('daoBetDesc'),
       color: '#9f7aea',
       popular: true,
       requiresWallet: true
@@ -84,65 +119,54 @@ export default function ChessComLayout() {
     {
       id: 'local',
       icon: '👥',
-      title: 'Jugar vs Amigo (Local)',
-      description: 'Juega contra un amigo en la misma pantalla',
+      title: t('vsFriend'),
+      description: t('vsFriendDesc'),
       color: '#4299e1'
-    },
+    }
+  ]
+
+  // Carousel 2: Extras (Shop, Puzzle, Invite, Profile)
+  const gameModesCarousel2 = [
     {
-      id: 'invite_friend',
-      icon: '🔗',
-      title: 'Invitar Amigo',
-      description: 'Genera un link para jugar con un amigo',
-      color: '#10B981',
-      popular: true
-    },
-    {
-      id: 'blitz',
-      icon: '⚡',
-      title: 'Partida Rápida',
-      description: 'Partida de 5 minutos - Modo Blitz',
-      color: '#ed8936'
+      id: 'nft_shop',
+      icon: '🎁',
+      title: t('nftShop'),
+      description: t('nftShopDesc'),
+      color: '#9f7aea',
+      requiresWallet: true
     },
     {
       id: 'puzzles',
       icon: '🧩',
-      title: 'Puzzles Diarios',
-      description: 'Resuelve problemas de mate en 2',
-      color: '#fbbf24',
-      popular: true
+      title: t('dailyPuzzle'),
+      description: t('dailyPuzzleDesc'),
+      color: '#fbbf24'
     },
     {
-      id: 'nft_shop',
-      icon: '🎁',
-      title: 'Tienda NFT',
-      description: 'Compra cajas con personajes NFT',
-      color: '#9f7aea',
-      popular: true,
-      requiresWallet: true
-    },
-    {
-      id: 'history',
-      icon: '📊',
-      title: 'Historial',
-      description: 'Ver partidas guardadas',
-      color: '#667eea'
+      id: 'invite_friend',
+      icon: '🔗',
+      title: t('inviteFriend'),
+      description: t('inviteFriendDesc'),
+      color: '#10B981'
     },
     {
       id: 'dashboard',
       icon: '👤',
-      title: 'Mi Perfil',
-      description: 'Dashboard social y desafíos',
+      title: t('myProfile'),
+      description: t('myProfileDesc'),
       color: '#a855f7',
-      popular: true,
       requiresWallet: true
     }
   ]
 
+  // Keep old gameModes for compatibility
+  const gameModes = [...gameModesCarousel1, ...gameModesCarousel2]
+
   const difficulties = [
-    { id: 'easy', label: 'Fácil', elo: '800', icon: '😊' },
-    { id: 'medium', label: 'Medio', elo: '1400', icon: '🙂' },
-    { id: 'hard', label: 'Difícil', elo: '1800', icon: '😤' },
-    { id: 'master', label: 'Maestro', elo: '2200+', icon: '🧠' }
+    { id: 'easy', label: t('easy'), elo: '800', icon: '😊' },
+    { id: 'medium', label: t('medium'), elo: '1400', icon: '🙂' },
+    { id: 'hard', label: t('hard'), elo: '1800', icon: '😤' },
+    { id: 'master', label: t('master'), elo: '2200+', icon: '🧠' }
   ]
 
   const handleGameEnd = async (result) => {
@@ -232,9 +256,16 @@ export default function ChessComLayout() {
     return <NFTLootBoxes onBack={() => setGameMode(null)} />
   }
 
-  // Render Invite Friend Game
+  // Render Invite Friend - show referral modal
   if (gameMode === 'invite_friend') {
-    return <InviteGame onBack={() => setGameMode(null)} />
+    return (
+      <>
+        <ReferralCard
+          walletAddress={walletAddress}
+          onClose={() => setGameMode(null)}
+        />
+      </>
+    )
   }
 
   // Render game view (AI, local, PvP bet, etc.)
@@ -428,38 +459,77 @@ export default function ChessComLayout() {
 
       {/* Main Content */}
       <main className="main-content">
-        {/* Hero Section */}
-        <section className="hero">
-          <h1 className="hero-title">Juega Ajedrez Online</h1>
-          <p className="hero-subtitle">
-            ¡Con tokens CHESS! Gana recompensas jugando
-          </p>
+        {/* Token Purchase Banner - Above Everything */}
+        <section className="token-banner">
+          <div className="token-banner-content">
+            <div className="token-banner-left">
+              <span className="token-icon">💎</span>
+              <div className="token-text">
+                <h3>{t('buyChess')}</h3>
+                <p>{language === 'en' ? 'Get tokens to play with bets and win more' : 'Obtén tokens para jugar con apuestas'}</p>
+              </div>
+            </div>
+            <div className="token-banner-right">
+              <button className="token-buy-btn" onClick={() => setShowTokenPurchase(true)}>
+                {language === 'en' ? 'Buy Now' : 'Comprar'}
+              </button>
+              <button className="lang-toggle" onClick={toggleLanguage}>
+                {language === 'en' ? '🇪🇸 ES' : '🇺🇸 EN'}
+              </button>
+            </div>
+          </div>
         </section>
 
-        {/* Game Modes Grid */}
-        <section className="game-modes">
-          <h2 className="section-title">Modos de Juego</h2>
-          <div className="modes-grid">
-            {gameModes.map(mode => (
+        {/* Hero Section */}
+        <section className="hero">
+          <h1 className="hero-title">{t('heroTitle')}</h1>
+          <p className="hero-subtitle">{t('heroSubtitle')}</p>
+        </section>
+
+        {/* Carousel 1: Game Modes */}
+        <section className="carousel-section">
+          <GameCarousel
+            items={gameModesCarousel1}
+            onItemClick={handleModeSelect}
+            title={language === 'en' ? '🎮 Game Modes' : '🎮 Modos de Juego'}
+            renderItem={(mode) => (
               <div
-                key={mode.id}
-                className={`mode-card ${mode.popular ? 'popular' : ''} ${mode.requiresWallet && !connected ? 'requires-wallet' : ''}`}
-                onClick={() => handleModeSelect(mode)}
-                style={{ '--accent-color': mode.color }}
+                className={`game-card ${mode.requiresWallet && !isWalletConnected ? 'locked' : ''}`}
+                style={{ '--accent': mode.color }}
               >
-                {mode.popular && <span className="popular-badge">Popular</span>}
-                {mode.requiresWallet && <span className="bet-badge-card">💰 Apuesta</span>}
-                <div className="mode-icon">{mode.icon}</div>
-                <h3 className="mode-title">{mode.title}</h3>
-                <p className="mode-desc">{mode.description}</p>
+                {mode.popular && <span className="card-badge popular">{t('popular')}</span>}
+                {mode.requiresWallet && <span className="card-badge bet">💰 {t('bet')}</span>}
+                <div className="game-card-icon">{mode.icon}</div>
+                <h3 className="game-card-title">{mode.title}</h3>
+                <p className="game-card-desc">{mode.description}</p>
               </div>
-            ))}
-          </div>
+            )}
+          />
+        </section>
+
+        {/* Carousel 2: Extras */}
+        <section className="carousel-section">
+          <GameCarousel
+            items={gameModesCarousel2}
+            onItemClick={handleModeSelect}
+            title={language === 'en' ? '✨ Extras' : '✨ Extras'}
+            renderItem={(mode) => (
+              <div
+                className={`game-card ${mode.requiresWallet && !isWalletConnected ? 'locked' : ''}`}
+                style={{ '--accent': mode.color }}
+              >
+                {mode.requiresWallet && <span className="card-badge bet">🔐</span>}
+                <div className="game-card-icon">{mode.icon}</div>
+                <h3 className="game-card-title">{mode.title}</h3>
+                <p className="game-card-desc">{mode.description}</p>
+              </div>
+            )}
+          />
         </section>
 
         {/* Quick Play Section */}
         <section className="quick-play">
-          <h2 className="section-title">Juego Rápido vs IA</h2>
+          <h2 className="section-title">{language === 'en' ? 'Quick Play vs AI' : 'Juego Rápido vs IA'}</h2>
           <div className="difficulty-select">
             {difficulties.map(diff => (
               <button
@@ -477,40 +547,23 @@ export default function ChessComLayout() {
             className="play-now-btn"
             onClick={() => setGameMode('ai')}
           >
-            🎮 Jugar Ahora
+            🎮 {t('playNow')}
           </button>
-        </section>
-
-        {/* Token Purchase Section */}
-        <section className="token-purchase">
-          <div className="purchase-card">
-            <div className="purchase-icon">💎</div>
-            <div className="purchase-info">
-              <h3>Compra Tokens CHESS</h3>
-              <p>Obtén tokens para jugar partidas con apuestas y ganar más</p>
-            </div>
-            <button
-              className="purchase-btn"
-              onClick={() => setShowTokenPurchase(true)}
-            >
-              Comprar Ahora
-            </button>
-          </div>
         </section>
 
         {/* Stats Section */}
         <section className="stats">
           <div className="stat-card">
             <span className="stat-value">10,000+</span>
-            <span className="stat-label">Jugadores Activos</span>
+            <span className="stat-label">{t('activePlayers')}</span>
           </div>
           <div className="stat-card">
             <span className="stat-value">1M+</span>
-            <span className="stat-label">Partidas Jugadas</span>
+            <span className="stat-label">{t('gamesPlayed')}</span>
           </div>
           <div className="stat-card">
             <span className="stat-value">500K</span>
-            <span className="stat-label">CHESS Distribuidos</span>
+            <span className="stat-label">{t('chessDistributed')}</span>
           </div>
         </section>
       </main>
@@ -528,17 +581,19 @@ export default function ChessComLayout() {
         />
       )}
 
-      {showSignatureModal && (
-        <SignatureModal
-          isOpen={showSignatureModal}
-          onClose={handleSignatureModalClose}
-          onSign={handleSignBet}
-          actionType="START_GAME_BET"
-          actionDetails={{ amount: pendingBetData?.betAmount }}
-          isSigning={isSigning}
-          error={signError}
-        />
-      )}
+      {
+        showSignatureModal && (
+          <SignatureModal
+            isOpen={showSignatureModal}
+            onClose={handleSignatureModalClose}
+            onSign={handleSignBet}
+            actionType="START_GAME_BET"
+            actionDetails={{ amount: pendingBetData?.betAmount }}
+            isSigning={isSigning}
+            error={signError}
+          />
+        )
+      }
 
       <style jsx>{`
         .chess-home {
@@ -729,6 +784,192 @@ export default function ChessComLayout() {
           margin: 0 0 24px;
           color: #F8FAFC;
           font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Token Banner - Top of page */
+        .token-banner {
+          background: linear-gradient(135deg, rgba(125, 42, 232, 0.3), rgba(45, 226, 230, 0.3));
+          border: 1px solid rgba(45, 226, 230, 0.3);
+          border-radius: 16px;
+          padding: 16px 24px;
+          margin-bottom: 24px;
+          backdrop-filter: blur(10px);
+        }
+        
+        .token-banner-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+        
+        .token-banner-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        
+        .token-icon {
+          font-size: 40px;
+          filter: drop-shadow(0 0 10px rgba(125, 42, 232, 0.5));
+        }
+        
+        .token-text h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+          color: #F8FAFC;
+          font-family: 'Orbitron', sans-serif;
+        }
+        
+        .token-text p {
+          margin: 4px 0 0;
+          font-size: 14px;
+          color: #94A3B8;
+        }
+        
+        .token-banner-right {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        
+        .token-buy-btn {
+          padding: 12px 24px;
+          background: linear-gradient(135deg, #D4AF37, #B8860B);
+          color: #020617;
+          border: none;
+          border-radius: 25px;
+          font-weight: 700;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.3s;
+          font-family: 'Orbitron', sans-serif;
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+        }
+        
+        .token-buy-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+        }
+        
+        .lang-toggle {
+          padding: 10px 16px;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 20px;
+          color: #F8FAFC;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .lang-toggle:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(45, 226, 230, 0.5);
+        }
+
+        /* Carousel Section */
+        .carousel-section {
+          margin-bottom: 32px;
+        }
+
+        /* Game Cards for Carousel */
+        .game-card {
+          width: 260px;
+          min-height: 180px;
+          background: rgba(11, 18, 33, 0.7);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(45, 226, 230, 0.2);
+          border-radius: 20px;
+          padding: 24px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          position: relative;
+        }
+        
+        .game-card:hover {
+          transform: translateY(-8px);
+          border-color: var(--accent, #2DE2E6);
+          box-shadow: 
+            0 20px 40px rgba(0, 0, 0, 0.4),
+            0 0 30px rgba(45, 226, 230, 0.2);
+        }
+        
+        .game-card.locked {
+          opacity: 0.7;
+        }
+        
+        .game-card-icon {
+          font-size: 48px;
+          margin-bottom: 12px;
+          filter: drop-shadow(0 0 10px var(--accent, rgba(45, 226, 230, 0.3)));
+        }
+        
+        .game-card-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #F8FAFC;
+          margin: 0 0 8px;
+          font-family: 'Orbitron', sans-serif;
+        }
+        
+        .game-card-desc {
+          font-size: 13px;
+          color: #94A3B8;
+          line-height: 1.4;
+          margin: 0;
+        }
+        
+        .card-badge {
+          position: absolute;
+          top: -8px;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-family: 'Orbitron', sans-serif;
+        }
+        
+        .card-badge.popular {
+          right: -8px;
+          background: linear-gradient(135deg, #2DE2E6, #7D2AE8);
+          color: #020617;
+          box-shadow: 0 0 12px rgba(45, 226, 230, 0.4);
+        }
+        
+        .card-badge.bet {
+          left: -8px;
+          background: linear-gradient(135deg, #D4AF37, #B8860B);
+          color: #020617;
+          box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+        }
+
+        @media (max-width: 768px) {
+          .token-banner-content {
+            flex-direction: column;
+            text-align: center;
+          }
+          
+          .token-banner-left {
+            flex-direction: column;
+          }
+          
+          .hero-title {
+            font-size: 32px;
+          }
+          
+          .game-card {
+            width: 220px;
+            min-height: 160px;
+            padding: 18px;
+          }
         }
         
         .modes-grid {
@@ -999,7 +1240,7 @@ export default function ChessComLayout() {
           }
         }
       `}</style>
-    </div>
+    </div >
   )
 }
 

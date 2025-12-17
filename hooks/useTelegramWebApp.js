@@ -12,6 +12,7 @@ export function useTelegramWebApp() {
     const [telegramUser, setTelegramUser] = useState(null)
     const [webApp, setWebApp] = useState(null)
     const [isReady, setIsReady] = useState(false)
+    const [startParam, setStartParam] = useState(null)
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -38,6 +39,14 @@ export function useTelegramWebApp() {
                     languageCode: tg.initDataUnsafe.user.language_code || 'en',
                     isPremium: tg.initDataUnsafe.user.is_premium || false
                 })
+            }
+
+            // Extract startapp parameter (for referrals)
+            // Format: REF_XXXXXX for referral codes
+            if (tg.initDataUnsafe?.start_param) {
+                const param = tg.initDataUnsafe.start_param
+                console.log('🎫 Start param detected:', param)
+                setStartParam(param)
             }
 
             // Set theme colors to match app
@@ -121,6 +130,9 @@ export function useTelegramWebApp() {
         isReady,
         telegramUser,
         webApp,
+        startParam,
+        // Helper to extract referral code from startParam
+        referralCode: startParam?.startsWith('REF_') ? startParam.substring(4) : null,
         actions: {
             showMainButton,
             hideMainButton,
@@ -131,3 +143,4 @@ export function useTelegramWebApp() {
         }
     }
 }
+
