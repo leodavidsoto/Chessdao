@@ -1,15 +1,14 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { TonConnectUI, CHAIN } from '@tonconnect/ui-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTelegramWebApp } from './useTelegramWebApp'
 
-// TON Connect manifest - describes the app to wallets
+// TON Connect manifest URL
 const MANIFEST_URL = 'https://chessdao-production.up.railway.app/tonconnect-manifest.json'
 
 /**
- * Hook for TON Connect integration
- * Used in Telegram Mini App for native TON wallet connection
+ * Hook for TON Connect integration in Telegram Mini App
+ * Uses the TonConnect SDK properly for Telegram WebView
  */
 export function useTonConnect() {
     const [tonConnectUI, setTonConnectUI] = useState(null)
@@ -19,31 +18,37 @@ export function useTonConnect() {
     const [address, setAddress] = useState(null)
     const [balance, setBalance] = useState(null)
     const [error, setError] = useState(null)
+    const [isInitialized, setIsInitialized] = useState(false)
+    const initRef = useRef(false)
     const { isInTelegram, telegramUser } = useTelegramWebApp()
 
-    // Initialize TON Connect
+    // Initialize TON Connect UI
     useEffect(() => {
         if (typeof window === 'undefined') return
+        if (initRef.current) return
+        initRef.current = true
 
         const initTonConnect = async () => {
             try {
+                // Dynamically import to avoid SSR issues
+                const { TonConnectUI } = await import('@tonconnect/ui')
+
+                console.log('🔷 Initializing TON Connect...')
+
                 const tonConnect = new TonConnectUI({
                     manifestUrl: MANIFEST_URL,
-                    // Use Telegram-friendly wallets first
-                    walletsListConfiguration: {
-                        includeWallets: ['tonkeeper', 'mytonwallet', 'openmask']
-                    }
+                    buttonRootId: 'ton-connect-button', // Optional DOM element for button
                 })
 
-                // Listen for connection changes
-                tonConnect.onStatusChange((currentWallet) => {
+                // Listen for connection status changes
+                const unsubscribe = tonConnect.onStatusChange((currentWallet) => {
+                    console.log('🔷 TON Status changed:', currentWallet)
                     if (currentWallet) {
-                        console.log('🔷 TON Wallet connected:', currentWallet)
                         setWallet(currentWallet)
                         setIsConnected(true)
+                        setIsConnecting(false)
                         setAddress(currentWallet.account?.address || null)
                     } else {
-                        console.log('🔷 TON Wallet disconnected')
                         setWallet(null)
                         setIsConnected(false)
                         setAddress(null)
@@ -51,63 +56,81 @@ export function useTonConnect() {
                     }
                 })
 
-                // Check if already connected
-                if (tonConnect.connected) {
-                    const currentWallet = tonConnect.wallet
-                    setWallet(currentWallet)
+                // Check if already connected from previous session
+                if (tonConnect.connected && tonConnect.wallet) {
+                    console.log('🔷 Already connected to TON wallet')
+                    setWallet(tonConnect.wallet)
                     setIsConnected(true)
-                    setAddress(currentWallet?.account?.address || null)
+                    setAddress(tonConnect.wallet.account?.address || null)
                 }
 
                 setTonConnectUI(tonConnect)
+                setIsInitialized(true)
+                console.log('🔷 TON Connect initialized successfully')
+
             } catch (err) {
-                console.error('Failed to initialize TON Connect:', err)
+                console.error('❌ Failed to initialize TON Connect:', err)
                 setError(err.message)
+                setIsInitialized(true) // Mark as initialized even on error
             }
         }
 
         initTonConnect()
-
-        return () => {
-            // Cleanup if needed
-        }
     }, [])
 
-    // Fetch TON balance
-    const fetchBalance = useCallback(async () => {
+    // Fetch TON balance when address changes
+    useEffect(() => {
         if (!address) return
 
-        try {
-            // Use TON API to get balance
-            const response = await fetch(`https://tonapi.io/v2/accounts/${address}`)
-            if (response.ok) {
-                const data = await response.json()
-                setBalance(data.balance / 1e9) // Convert from nanoTON to TON
+        const fetchBalance = async () => {
+            try {
+                // Use TON Center API (more reliable)
+                const response = await fetch(
+                    `https://toncenter.com/api/v2/getAddressBalance?address=${address}`
+                )
+                if (response.ok) {
+                    const data = await response.json()
+                    if (data.ok && data.result) {
+                        setBalance(parseInt(data.result) / 1e9) // Convert from nanoTON
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch TON balance:', err)
+                // Fallback - try TON API
+                try {
+                    const res = await fetch(`https://tonapi.io/v2/accounts/${address}`)
+                    if (res.ok) {
+                        const data = await res.json()
+                        setBalance(data.balance / 1e9)
+                    }
+                } catch (e) {
+                    console.error('Fallback balance fetch also failed:', e)
+                }
             }
-        } catch (err) {
-            console.error('Failed to fetch TON balance:', err)
         }
+
+        fetchBalance()
     }, [address])
 
-    useEffect(() => {
-        if (address) {
-            fetchBalance()
-        }
-    }, [address, fetchBalance])
-
-    // Connect wallet
+    // Connect wallet - opens the TON Connect modal
     const connect = useCallback(async () => {
-        if (!tonConnectUI) return
+        if (!tonConnectUI) {
+            console.error('TON Connect not initialized')
+            setError('TON Connect no está listo. Intenta de nuevo.')
+            return
+        }
 
         setIsConnecting(true)
         setError(null)
 
         try {
+            console.log('🔷 Opening TON Connect modal...')
+            // This opens the wallet selection modal
             await tonConnectUI.openModal()
+            console.log('🔷 Modal opened')
         } catch (err) {
-            console.error('TON Connect error:', err)
-            setError(err.message)
-        } finally {
+            console.error('❌ TON Connect error:', err)
+            setError(err.message || 'Error al conectar wallet')
             setIsConnecting(false)
         }
     }, [tonConnectUI])
@@ -122,25 +145,26 @@ export function useTonConnect() {
             setIsConnected(false)
             setAddress(null)
             setBalance(null)
+            console.log('🔷 Disconnected from TON wallet')
         } catch (err) {
             console.error('TON Disconnect error:', err)
         }
     }, [tonConnectUI])
 
     // Send TON transaction
-    const sendTransaction = useCallback(async (toAddress, amount, message = '') => {
+    const sendTransaction = useCallback(async (toAddress, amount, comment = '') => {
         if (!tonConnectUI || !isConnected) {
             throw new Error('Wallet not connected')
         }
 
         try {
             const transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+                validUntil: Math.floor(Date.now() / 1000) + 600,
                 messages: [
                     {
                         address: toAddress,
-                        amount: String(Math.floor(amount * 1e9)), // Convert TON to nanoTON
-                        payload: message ? btoa(message) : undefined
+                        amount: String(Math.floor(amount * 1e9)),
+                        payload: comment || undefined
                     }
                 ]
             }
@@ -148,23 +172,35 @@ export function useTonConnect() {
             const result = await tonConnectUI.sendTransaction(transaction)
             console.log('🔷 TON Transaction sent:', result)
 
-            return {
-                success: true,
-                boc: result.boc
-            }
+            return { success: true, boc: result.boc }
         } catch (err) {
             console.error('TON Transaction error:', err)
-            return {
-                success: false,
-                error: err.message
-            }
+            return { success: false, error: err.message }
         }
     }, [tonConnectUI, isConnected])
 
-    // Get formatted address
+    // Refresh balance manually
+    const refreshBalance = useCallback(async () => {
+        if (!address) return
+
+        try {
+            const response = await fetch(
+                `https://toncenter.com/api/v2/getAddressBalance?address=${address}`
+            )
+            if (response.ok) {
+                const data = await response.json()
+                if (data.ok && data.result) {
+                    setBalance(parseInt(data.result) / 1e9)
+                }
+            }
+        } catch (err) {
+            console.error('Failed to refresh balance:', err)
+        }
+    }, [address])
+
+    // Get formatted short address
     const getFormattedAddress = useCallback(() => {
         if (!address) return null
-        // TON addresses are long, show shortened version
         return `${address.slice(0, 6)}...${address.slice(-4)}`
     }, [address])
 
@@ -173,6 +209,7 @@ export function useTonConnect() {
         wallet,
         isConnected,
         isConnecting,
+        isInitialized,
         address,
         balance,
         error,
@@ -182,7 +219,7 @@ export function useTonConnect() {
             connect,
             disconnect,
             sendTransaction,
-            refreshBalance: fetchBalance,
+            refreshBalance,
             getFormattedAddress
         }
     }
