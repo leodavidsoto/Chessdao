@@ -25,6 +25,9 @@ import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 import { useTonConnect } from '@/hooks/useTonConnect'
 import TonWalletConnect from '@/components/TonWalletConnect'
 import ReferralCard from '@/components/ReferralCard'
+import SquadsPanel from '@/components/SquadsPanel'
+import DailyChallenge from '@/components/DailyChallenge'
+import PassiveIncomeCard from '@/components/PassiveIncomeCard'
 
 /**
  * ChessComLayout - Chess.com-style main layout with DAO features and betting
@@ -75,6 +78,9 @@ export default function ChessComLayout() {
   const [currentBet, setCurrentBet] = useState(0)
   const [showTonWallet, setShowTonWallet] = useState(false)
   const [showReferral, setShowReferral] = useState(false)
+  const [showSquads, setShowSquads] = useState(false)
+  const [showDailyChallenge, setShowDailyChallenge] = useState(false)
+  const [showPassiveIncome, setShowPassiveIncome] = useState(false)
 
   // Determine if wallet is connected (Solana OR TON)
   const isWalletConnected = isInTelegram ? tonConnected : connected
@@ -126,8 +132,31 @@ export default function ChessComLayout() {
     }
   ]
 
-  // Carousel 2: Extras (Shop, Puzzle, Invite, Profile)
+  // Carousel 2: Extras (Shop, Puzzle, Invite, Profile, Squads, Daily)
   const gameModesCarousel2 = [
+    {
+      id: 'squads',
+      icon: '👥',
+      title: language === 'en' ? 'Squads' : 'Escuadrones',
+      description: language === 'en' ? 'Join a team and compete!' : '¡Únete a un equipo y compite!',
+      color: '#8B5CF6',
+      hot: true
+    },
+    {
+      id: 'daily_challenge',
+      icon: '🎯',
+      title: language === 'en' ? 'Daily Challenge' : 'Desafío Diario',
+      description: language === 'en' ? 'Solve the combo for 50K $GAME!' : '¡Resuelve el combo y gana 50K $GAME!',
+      color: '#F59E0B',
+      hot: true
+    },
+    {
+      id: 'passive_income',
+      icon: '💰',
+      title: language === 'en' ? 'Passive Income' : 'Ingreso Pasivo',
+      description: language === 'en' ? 'Claim hourly earnings' : 'Reclama ganancias cada hora',
+      color: '#10B981'
+    },
     {
       id: 'nft_shop',
       icon: '🎁',
@@ -205,6 +234,12 @@ export default function ChessComLayout() {
     } else if (mode.id === 'dao_bet') {
       setBettingType('dao')
       setShowBettingModal(true)
+    } else if (mode.id === 'squads') {
+      setShowSquads(true)
+    } else if (mode.id === 'daily_challenge') {
+      setShowDailyChallenge(true)
+    } else if (mode.id === 'passive_income') {
+      setShowPassiveIncome(true)
     } else {
       setGameMode(mode.id)
     }
@@ -599,6 +634,30 @@ export default function ChessComLayout() {
           />
         )
       }
+
+      {/* Squads Panel */}
+      {showSquads && (
+        <SquadsPanel
+          walletAddress={walletAddress}
+          onClose={() => setShowSquads(false)}
+        />
+      )}
+
+      {/* Daily Challenge */}
+      {showDailyChallenge && (
+        <DailyChallenge
+          walletAddress={walletAddress}
+          onClose={() => setShowDailyChallenge(false)}
+        />
+      )}
+
+      {/* Passive Income */}
+      {showPassiveIncome && (
+        <PassiveIncomeCard
+          walletAddress={walletAddress}
+          onClose={() => setShowPassiveIncome(false)}
+        />
+      )}
 
       <style jsx>{`
         .chess-home {

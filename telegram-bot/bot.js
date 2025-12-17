@@ -95,11 +95,19 @@ bot.help((ctx) => {
 /start - Menú principal
 /play - Abrir ChessDAO
 /invite - Invitar amigos y ganar GAME
+/daily - Desafío diario (50K $GAME)
+/claim - Reclamar ingreso pasivo
+/squad - Ver o crear tu Squad
 /balance - Ver tu balance
 /stats - Tus estadísticas
 /leaderboard - Top jugadores
 /link \`wallet\` - Vincular wallet
 /help - Esta ayuda
+
+*🔥 Nuevas Features:*
+• 👥 Squads - Compite en equipo
+• 🎯 Desafío Diario - ¡50,000 $GAME!
+• 💰 Ingreso Pasivo - Gana cada hora
 
 *Sistema de Referidos:*
 • Gana 500 $GAME por cada amigo
@@ -117,6 +125,98 @@ bot.command('play', (ctx) => {
       [Markup.button.webApp('♟️ Jugar Ahora', WEBAPP_URL)]
     ])
   );
+});
+
+// Daily Challenge command - 50K reward!
+bot.command('daily', async (ctx) => {
+  await ctx.replyWithMarkdown(`
+🎯 *Desafío Diario*
+
+¡Resuelve el combo secreto y gana *50,000 $GAME*!
+
+*¿Cómo funciona?*
+• Cada día hay una combinación secreta
+• Busca pistas en Twitter y grupos
+• ¡El primero que resuelva gana más!
+
+💡 Tip: La comunidad comparte soluciones en Twitter
+`, Markup.inlineKeyboard([
+    [Markup.button.webApp('🎯 Resolver Combo', `${WEBAPP_URL}?mode=daily_challenge`)],
+    [Markup.button.url('🔍 Buscar en Twitter', 'https://twitter.com/search?q=ChessDAO%20daily%20combo')]
+  ]));
+});
+
+// Claim passive income command
+bot.command('claim', async (ctx) => {
+  const user = ctx.from;
+  const walletAddress = userWallets.get(user.id);
+
+  if (!walletAddress) {
+    return ctx.replyWithMarkdown(`
+💰 *Ingreso Pasivo*
+
+Vincula tu wallet primero para reclamar:
+\`/link <tu_wallet>\`
+
+O abre la app para reclamar:
+`, Markup.inlineKeyboard([
+      [Markup.button.webApp('💰 Reclamar', `${WEBAPP_URL}?mode=passive_income`)]
+    ]));
+  }
+
+  // Try to claim via API
+  try {
+    const result = await fetchAPI('/api/user/pph', {
+      method: 'POST',
+      body: JSON.stringify({ walletAddress })
+    });
+
+    if (result?.success) {
+      await ctx.replyWithMarkdown(`
+✅ *¡Reclamado!*
+
+Has recibido *${result.claimed} $GAME*
+
+💡 Recuerda volver en unas horas para reclamar más (máx 3h acumulación)
+`, Markup.inlineKeyboard([
+        [Markup.button.webApp('🎮 Jugar', WEBAPP_URL)]
+      ]));
+    } else {
+      await ctx.replyWithMarkdown(`
+💰 *Ingreso Pasivo*
+
+${result?.error || 'Nada que reclamar aún. Espera unos minutos.'}
+`, Markup.inlineKeyboard([
+        [Markup.button.webApp('💰 Ver Estado', `${WEBAPP_URL}?mode=passive_income`)]
+      ]));
+    }
+  } catch (error) {
+    await ctx.replyWithMarkdown(`
+💰 Abre la app para reclamar:
+`, Markup.inlineKeyboard([
+      [Markup.button.webApp('💰 Reclamar', `${WEBAPP_URL}?mode=passive_income`)]
+    ]));
+  }
+});
+
+// Squad command
+bot.command('squad', async (ctx) => {
+  await ctx.replyWithMarkdown(`
+👥 *Squads - Competencia en Equipo*
+
+¡Únete a un Squad y compite por el ranking!
+
+*Beneficios:*
+• 🏆 Ranking grupal semanal
+• 💰 Recompensas compartidas
+• 👥 Juega con tu equipo
+• 🔥 Bonificadores de Squad
+
+¿Listo para unirte?
+`, Markup.inlineKeyboard([
+    [Markup.button.webApp('👥 Ver Squads', `${WEBAPP_URL}?mode=squads`)],
+    [Markup.button.webApp('➕ Crear Squad', `${WEBAPP_URL}?mode=squads&action=create`)]
+  ]));
 });
 
 // Buy command - Telegram Stars purchase
