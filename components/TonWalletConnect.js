@@ -5,7 +5,7 @@ import { useTonConnect } from '@/hooks/useTonConnect'
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Wallet, CheckCircle, ExternalLink, RefreshCw, LogOut } from 'lucide-react'
+import { Wallet, CheckCircle, ExternalLink, RefreshCw, LogOut, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -16,6 +16,7 @@ export default function TonWalletConnect({ onConnect }) {
     const {
         isConnected,
         isConnecting,
+        isInitialized,
         address,
         balance,
         error,
@@ -25,6 +26,19 @@ export default function TonWalletConnect({ onConnect }) {
 
     const { actions: telegramActions } = useTelegramWebApp()
     const [showDetails, setShowDetails] = useState(false)
+
+    // Show loading while SDK initializes
+    if (!isInitialized) {
+        return (
+            <Card className="bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-cyan-500/30 backdrop-blur-sm">
+                <CardContent className="p-8 text-center">
+                    <Loader2 className="w-10 h-10 text-cyan-400 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-300">Inicializando TON Connect...</p>
+                    <p className="text-xs text-slate-500 mt-2">Esto puede tomar unos segundos</p>
+                </CardContent>
+            </Card>
+        )
+    }
 
     // Notify parent when connected
     useEffect(() => {
