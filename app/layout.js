@@ -29,6 +29,9 @@ export default function RootLayout({ children }) {
         <title>DAO Chess - Decentralized Chess with Token Rewards</title>
         <meta name="description" content="Play chess, earn tokens, vote on community moves in the ultimate decentralized chess experience" />
 
+        {/* Telegram WebApp SDK - MUST be loaded first for detection */}
+        <script src="https://telegram.org/js/telegram-web-app.js" />
+
         {/* PWA Meta Tags */}
         <meta name="application-name" content="ChessDAO" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
