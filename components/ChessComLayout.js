@@ -87,6 +87,9 @@ export default function ChessComLayout() {
   const walletAddress = isInTelegram ? tonAddress : publicKey?.toString()
   const displayBalance = isInTelegram ? `${tonBalance?.toFixed(2) || 0} TON` : `${actions.formatChessAmount(chessBalance)} CHESS`
 
+  // Debug: Log Telegram detection on every render
+  console.log('🎮 ChessComLayout | isInTelegram:', isInTelegram, '| tonConnected:', tonConnected, '| solanaConnected:', connected)
+
   // Carousel 1: Game Modes (in order: Quick, AI, PvP$, DAO$, Friend)
   const gameModesCarousel1 = [
     {
