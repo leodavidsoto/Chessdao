@@ -1,39 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import ChessComLayout from '@/components/ChessComLayout'
-import { usePhantomDeeplink } from '@/hooks/usePhantomDeeplink'
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 import TelegramWalletConnect from '@/components/TelegramWalletConnect'
+import TonWalletConnect from '@/components/TonWalletConnect'
 
 export default function Home() {
-  const { connected, publicKey } = useWallet()
-  const phantom = usePhantomDeeplink()
   const telegram = useTelegramWebApp()
   const [showApp, setShowApp] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const [telegramConnection, setTelegramConnection] = useState(null)
+  const [walletConnected, setWalletConnected] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Detect mobile/Android WebView
-    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    setIsMobile(mobile)
   }, [])
 
-  useEffect(() => {
-    if (connected || phantom.connected || telegramConnection) {
-      setShowApp(true)
-    }
-  }, [connected, phantom.connected, telegramConnection])
-
-  // Handle Telegram wallet connection
-  const handleTelegramConnect = (connectionData) => {
-    console.log('Telegram connected:', connectionData)
-    setTelegramConnection(connectionData)
+  // Handle wallet connection (TON)
+  const handleWalletConnect = (connectionData) => {
+    console.log('Wallet connected:', connectionData)
+    setWalletConnected(true)
     setShowApp(true)
   }
 
@@ -77,7 +63,7 @@ export default function Home() {
     )
   }
 
-  if (!showApp && !connected) {
+  if (!showApp && !walletConnected) {
     return (
       <div className="landing-page">
         {/* Background Effects */}
@@ -118,7 +104,7 @@ export default function Home() {
                 <h2>Compra Tokens CHESS</h2>
                 <p>Precio de lanzamiento: <span className="price-highlight">$0.01 USD</span> por token</p>
                 <div className="sale-features">
-                  <span>✓ {telegram.isInTelegram ? 'Paga con TON o Stars ⭐' : 'Paga con SOL o USDC'}</span>
+                  <span>✓ Paga con TON o Stars ⭐</span>
                   <span>✓ Tokens instantáneos</span>
                   <span>✓ Úsalos para apostar</span>
                 </div>
@@ -154,7 +140,7 @@ export default function Home() {
               <div className="feature-icon">🏆</div>
               <div className="feature-content">
                 <h3>Gana Premios</h3>
-                <p>Gana tokens reales en blockchain de {telegram.isInTelegram ? 'TON' : 'Solana'}</p>
+                <p>Gana tokens reales en blockchain de TON</p>
               </div>
             </div>
             <div className="feature-card">
@@ -173,44 +159,20 @@ export default function Home() {
             <span className="chain-link"></span>
           </div>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - TON ONLY */}
           <div className="cta-section">
             {telegram.isInTelegram ? (
-              /* Telegram Mini App - show alternative connection */
               <div className="telegram-connect-wrapper">
-                <TelegramWalletConnect onConnect={handleTelegramConnect} />
+                <TelegramWalletConnect onConnect={handleWalletConnect} />
               </div>
-            ) : isMobile ? (
-              <>
-                <button
-                  onClick={phantom.connect}
-                  className="phantom-mobile-button"
-                  disabled={phantom.connecting}
-                >
-                  <img src="https://phantom.app/img/phantom-icon-purple.svg" alt="Phantom" className="phantom-icon" />
-                  {phantom.connecting ? 'Conectando...' : 'Conectar con Phantom'}
-                </button>
-                {phantom.connected && (
-                  <div className="connected-info">
-                    ✅ Conectado: {phantom.publicKey?.toString().slice(0, 8)}...
-                  </div>
-                )}
-              </>
             ) : (
-              <>
-                <WalletMultiButton className="wallet-button" />
-                {connected && (
-                  <div className="connected-info">
-                    ✅ Conectado: {publicKey?.toString().slice(0, 8)}...
-                  </div>
-                )}
-              </>
+              <div className="ton-connect-wrapper">
+                <TonWalletConnect onConnect={handleWalletConnect} />
+              </div>
             )}
-            {!telegram.isInTelegram && (
-              <button onClick={() => setShowApp(true)} className="guest-button">
-                Jugar como Invitado
-              </button>
-            )}
+            <button onClick={() => setShowApp(true)} className="guest-button">
+              Jugar como Invitado
+            </button>
           </div>
 
           {/* Stats */}
@@ -233,7 +195,7 @@ export default function Home() {
 
           {/* Footer */}
           <div className="landing-footer">
-            <p>Powered by <span className={telegram.isInTelegram ? 'ton-text' : 'solana-text'}>{telegram.isInTelegram ? 'TON' : 'Solana'}</span></p>
+            <p>Powered by <span className="ton-text">TON</span></p>
           </div>
         </div>
 
