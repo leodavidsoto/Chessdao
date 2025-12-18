@@ -5,9 +5,11 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { Shield, X, Loader2, AlertCircle, CheckCircle, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
+import { useTonConnect } from '@/hooks/useTonConnect'
 
 /**
- * Modal de confirmación de firma para Phantom wallet
+ * Modal de confirmación de firma para Phantom wallet (browser) o TON (Telegram)
  */
 export default function SignatureModal({
     isOpen,
@@ -19,6 +21,8 @@ export default function SignatureModal({
     error
 }) {
     const { connected, signMessage } = useWallet()
+    const { isInTelegram } = useTelegramWebApp()
+    const { isConnected: tonConnected, actions: tonActions } = useTonConnect()
     const [showSuccess, setShowSuccess] = useState(false)
 
     // Títulos por tipo de acción
@@ -34,7 +38,7 @@ export default function SignatureModal({
     // Descripciones por tipo de acción
     const ACTION_DESCRIPTIONS = {
         START_GAME_BET: `Vas a iniciar una partida con una apuesta de ${actionDetails?.amount || 0} CHESS tokens. Si pierdes, perderás estos tokens.`,
-        BUY_TOKENS: `Vas a comprar ${actionDetails?.amount || 0} CHESS tokens por ${actionDetails?.price || '?'} SOL.`,
+        BUY_TOKENS: `Vas a comprar ${actionDetails?.amount || 0} CHESS tokens por ${actionDetails?.price || '?'} ${isInTelegram ? 'TON' : 'USD'}.`,
         OPEN_LOOTBOX: `Vas a abrir un Loot Box ${actionDetails?.type || 'Normal'} por ${actionDetails?.cost || 0} CHESS tokens.`,
         SEND_CHALLENGE: `Vas a desafiar a ${actionDetails?.opponent || 'un jugador'} con una apuesta de ${actionDetails?.amount || 0} CHESS tokens.`,
         TRANSFER_TOKENS: `Vas a transferir ${actionDetails?.amount || 0} CHESS tokens.`,
@@ -42,7 +46,7 @@ export default function SignatureModal({
     }
 
     const handleSign = async () => {
-        console.log('🔐 handleSign called, connected:', connected, 'signMessage:', !!signMessage)
+        console.log('🔐 handleSign called, connected:', connected, 'signMessage:', !!signMessage, 'isInTelegram:', isInTelegram)
         const result = await onSign()
         console.log('🔐 Sign result:', result)
         if (result?.valid) {
@@ -56,8 +60,10 @@ export default function SignatureModal({
 
     if (!isOpen) return null
 
-    // Si no está conectada la wallet, mostrar mensaje para conectar
-    const walletNotConnected = !connected || !signMessage
+    // Determine if wallet is connected based on context
+    const isWalletConnected = isInTelegram ? tonConnected : connected
+    const walletNotConnected = isInTelegram ? !tonConnected : (!connected || !signMessage)
+    const walletName = isInTelegram ? 'TON Wallet' : 'Phantom'
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -119,8 +125,13 @@ export default function SignatureModal({
                         <div className="flex items-start gap-2">
                             <Wallet className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-purple-300">
-                                Se abrirá Phantom para que firmes y confirmes esta acción.
-                                <strong> No se realizará ninguna transacción hasta que firmes.</strong>
+                                {isInTelegram ? (
+                                    <>Se confirmará esta acción usando tu wallet TON.
+                                        <strong> No se realizará ninguna transacción hasta que confirmes.</strong></>
+                                ) : (
+                                    <>Se abrirá Phantom para que firmes y confirmes esta acción.
+                                        <strong> No se realizará ninguna transacción hasta que firmes.</strong></>
+                                )}
                             </p>
                         </div>
                     </div>
@@ -140,7 +151,7 @@ export default function SignatureModal({
                         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
                             <div className="flex items-center gap-2">
                                 <CheckCircle className="h-5 w-5 text-green-400" />
-                                <p className="text-sm text-green-300">¡Firma exitosa!</p>
+                                <p className="text-sm text-green-300">¡Confirmación exitosa!</p>
                             </div>
                         </div>
                     )}
@@ -159,9 +170,18 @@ export default function SignatureModal({
 
                     {walletNotConnected ? (
                         <div className="flex-1">
-                            <WalletMultiButton className="w-full !bg-gradient-to-r !from-purple-500 !to-indigo-500 !rounded-lg !h-10" />
+                            {isInTelegram ? (
+                                <Button
+                                    onClick={() => tonActions.connect()}
+                                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                                >
+                                    💎 Conectar TON
+                                </Button>
+                            ) : (
+                                <WalletMultiButton className="w-full !bg-gradient-to-r !from-purple-500 !to-indigo-500 !rounded-lg !h-10" />
+                            )}
                             <p className="text-xs text-center text-gray-400 mt-2">
-                                Conecta tu wallet para firmar
+                                Conecta tu wallet para confirmar
                             </p>
                         </div>
                     ) : (
@@ -173,17 +193,17 @@ export default function SignatureModal({
                             {isSigning ? (
                                 <>
                                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Esperando firma...
+                                    Esperando...
                                 </>
                             ) : showSuccess ? (
                                 <>
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    ¡Firmado!
+                                    ¡Confirmado!
                                 </>
                             ) : (
                                 <>
                                     <Shield className="h-4 w-4 mr-2" />
-                                    Firmar con Phantom
+                                    Confirmar
                                 </>
                             )}
                         </Button>
