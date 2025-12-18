@@ -165,16 +165,16 @@ export default function TokenWallet({ compact = false }) {
                                 <Coins className="h-6 w-6 text-purple-400" />
                                 <div>
                                     <span className="font-bold text-white">CHESS</span>
-                                    <Badge variant="outline" className="ml-2 text-xs border-purple-500/50 text-purple-400">
-                                        SPL Token
+                                    <Badge variant="outline" className="ml-2 text-xs border-blue-500/50 text-blue-400">
+                                        TON Token
                                     </Badge>
                                 </div>
                             </div>
                             <a
-                                href={`https://explorer.solana.com/address/${publicKey?.toString()}?cluster=devnet`}
+                                href={`https://tonviewer.com/`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-slate-400 hover:text-purple-400 transition-colors"
+                                className="text-slate-400 hover:text-blue-400 transition-colors"
                             >
                                 <ExternalLink className="h-4 w-4" />
                             </a>
@@ -183,17 +183,17 @@ export default function TokenWallet({ compact = false }) {
                             {chessActions.formatChessAmount(chessBalance)}
                         </div>
                         <p className="text-xs text-slate-400 mt-1">
-                            Token real en Solana • ${chessActions.getUsdValue(chessBalance)} USD
+                            Token en TON • ${chessActions.getUsdValue(chessBalance)} USD
                         </p>
                     </div>
 
-                    {/* SOL Balance */}
+                    {/* TON Balance */}
                     <div className="flex items-center justify-between bg-slate-700/30 rounded-lg px-4 py-3">
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-teal-400 flex items-center justify-center">
-                                <span className="text-xs font-bold">◎</span>
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 flex items-center justify-center">
+                                <span className="text-xs font-bold">💎</span>
                             </div>
-                            <span className="text-white font-medium">SOL</span>
+                            <span className="text-white font-medium">TON</span>
                         </div>
                         <div className="text-right">
                             <div className="text-white font-semibold">

@@ -1,76 +1,36 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useWallet, useConnection } from '@solana/wallet-adapter-react'
-import { PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js'
-import {
-  createTransferInstruction,
-  getAssociatedTokenAddress,
-  getAccount,
-  createAssociatedTokenAccountInstruction,
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID
-} from '@solana/spl-token'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Coins, DollarSign, Zap, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Coins, Star, Zap, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { apiFetch } from '@/lib/config'
 
-const TREASURY_WALLET = process.env.NEXT_PUBLIC_TREASURY_WALLET || '3bbdiPDBEQHjnQVjAnQ9uKDhPFYbT1njnN6kayCivcGo'
 const CHESS_TOKEN_PRICE = Number(process.env.CHESS_TOKEN_PRICE) || 0.01 // $0.01 USD per CHESS token
-const SOLANA_NETWORK = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet'
-
-// USDC Mint addresses
-const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' // USDC mainnet
-const USDC_DEVNET_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU' // USDC devnet
-const USDC_DECIMALS = 6 // USDC has 6 decimals
 
 export default function TokenPurchaseV2({ onClose }) {
-  const { publicKey, sendTransaction } = useWallet()
-  const { connection } = useConnection()
   const [loading, setLoading] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState('SOL') // 'SOL' or 'USDC'
+  const [paymentMethod, setPaymentMethod] = useState('TON') // 'TON' or 'STARS'
   const [tokenAmount, setTokenAmount] = useState('')
-  const [solPrice, setSolPrice] = useState(150) // Default SOL price in USD
+  const [tonPrice, setTonPrice] = useState(2.5) // Default TON price in USD
   const [processingTx, setProcessingTx] = useState(false)
-
-  // Fetch current SOL price from API
-  useEffect(() => {
-    const fetchSolPrice = async () => {
-      try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd')
-        const data = await response.json()
-        if (data?.solana?.usd) {
-          setSolPrice(data.solana.usd)
-        }
-      } catch (error) {
-        console.error('Error fetching SOL price:', error)
-        setSolPrice(150) // Fallback price
-      }
-    }
-    fetchSolPrice()
-  }, [])
 
   const calculatePaymentAmount = () => {
     const tokens = parseFloat(tokenAmount) || 0
     const usdAmount = tokens * CHESS_TOKEN_PRICE
-    
-    if (paymentMethod === 'SOL') {
-      return (usdAmount / solPrice).toFixed(4)
+
+    if (paymentMethod === 'TON') {
+      return (usdAmount / tonPrice).toFixed(4)
     } else {
-      return usdAmount.toFixed(2)
+      // Stars: approximately 50 stars per $1 USD
+      return Math.ceil(usdAmount * 50)
     }
   }
 
-  const handlePurchaseWithSOL = async () => {
-    if (!publicKey) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
+  const handlePurchase = async () => {
     const tokens = parseFloat(tokenAmount)
     if (!tokens || tokens < 100) {
       toast.error('Minimum purchase is 100 CHESS tokens')
@@ -81,67 +41,38 @@ export default function TokenPurchaseV2({ onClose }) {
     setProcessingTx(true)
 
     try {
-      const usdAmount = tokens * CHESS_TOKEN_PRICE
-      const solAmount = usdAmount / solPrice
-      const lamports = Math.floor(solAmount * LAMPORTS_PER_SOL)
-
-      console.log(`💰 Purchasing ${tokens} CHESS tokens for ${solAmount} SOL ($${usdAmount})`)
-
-      // Create transaction
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: new PublicKey(TREASURY_WALLET),
-          lamports: lamports,
-        })
-      )
-
-      // Send transaction
-      const signature = await sendTransaction(transaction, connection)
-      console.log('📝 Transaction sent:', signature)
-
-      toast.info('Processing payment...', {
-        description: 'Waiting for blockchain confirmation'
-      })
-
-      // Wait for confirmation
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed')
-      
-      if (confirmation.value.err) {
-        throw new Error('Transaction failed')
-      }
-
-      console.log('✅ Payment confirmed!')
-
-      // Credit tokens via API
-      const response = await apiFetch('/api/payments/credit-tokens', {
-        method: 'POST',
-        body: JSON.stringify({
-          walletAddress: publicKey.toString(),
-          tokens: tokens,
-          paymentMethod: 'SOL',
-          paymentAmount: solAmount,
-          usdAmount: usdAmount,
-          transactionSignature: signature
-        })
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success('Purchase successful!', {
-          description: `${tokens} CHESS tokens have been credited to your account`
-        })
-        
-        // Wait a bit then close and refresh
-        setTimeout(() => {
-          onClose()
-          window.location.reload()
-        }, 2000)
+      // For TON: Use TON Connect or Telegram Wallet
+      if (paymentMethod === 'TON') {
+        toast.info('Conectando con TON wallet...')
+        // TODO: Integrate TON Connect payment flow
+        toast.success('Sistema TON en desarrollo. Usa Stars por ahora.')
       } else {
-        throw new Error(result.error || 'Failed to credit tokens')
-      }
+        // For Stars: Use Telegram Stars API
+        if (window.Telegram?.WebApp) {
+          const starsAmount = calculatePaymentAmount()
+          toast.info(`Procesando pago de ${starsAmount} Stars...`)
 
+          // Invoke Telegram Stars payment
+          window.Telegram.WebApp.openInvoice({
+            title: `${tokens} CHESS Tokens`,
+            description: `Purchase ${tokens} CHESS tokens for DAO Chess`,
+            currency: 'XTR', // Telegram Stars currency
+            prices: [{ label: 'CHESS Tokens', amount: parseInt(starsAmount) }]
+          }, (status) => {
+            if (status === 'paid') {
+              toast.success(`¡Compra exitosa! ${tokens} CHESS tokens añadidos`)
+              setTimeout(() => {
+                onClose()
+                window.location.reload()
+              }, 2000)
+            } else {
+              toast.error('Payment cancelled or failed')
+            }
+          })
+        } else {
+          toast.error('Telegram Stars only available in Telegram Mini App')
+        }
+      }
     } catch (error) {
       console.error('❌ Payment error:', error)
       toast.error('Payment failed', {
@@ -150,152 +81,6 @@ export default function TokenPurchaseV2({ onClose }) {
     } finally {
       setLoading(false)
       setProcessingTx(false)
-    }
-  }
-
-  const handlePurchaseWithUSDC = async () => {
-    if (!publicKey) {
-      toast.error('Please connect your wallet first')
-      return
-    }
-
-    const tokens = parseFloat(tokenAmount)
-    if (!tokens || tokens < 100) {
-      toast.error('Minimum purchase is 100 CHESS tokens')
-      return
-    }
-
-    setLoading(true)
-    setProcessingTx(true)
-
-    try {
-      const usdAmount = tokens * CHESS_TOKEN_PRICE
-      const usdcMintAddress = SOLANA_NETWORK === 'mainnet-beta' ? USDC_MINT : USDC_DEVNET_MINT
-      const usdcMint = new PublicKey(usdcMintAddress)
-      const treasuryPubkey = new PublicKey(TREASURY_WALLET)
-
-      console.log(`Purchasing ${tokens} CHESS tokens for ${usdAmount} USDC`)
-
-      // Get user's USDC token account
-      const userUsdcAccount = await getAssociatedTokenAddress(
-        usdcMint,
-        publicKey
-      )
-
-      // Check if user has USDC token account and sufficient balance
-      try {
-        const accountInfo = await getAccount(connection, userUsdcAccount)
-        const balance = Number(accountInfo.amount) / Math.pow(10, USDC_DECIMALS)
-
-        if (balance < usdAmount) {
-          toast.error('Insufficient USDC balance', {
-            description: `You have ${balance.toFixed(2)} USDC, need ${usdAmount.toFixed(2)} USDC`
-          })
-          return
-        }
-      } catch (e) {
-        toast.error('No USDC token account found', {
-          description: 'Please add USDC to your wallet first'
-        })
-        return
-      }
-
-      // Get treasury's USDC token account (create if needed)
-      const treasuryUsdcAccount = await getAssociatedTokenAddress(
-        usdcMint,
-        treasuryPubkey
-      )
-
-      // Build transaction
-      const transaction = new Transaction()
-
-      // Check if treasury USDC account exists, if not add instruction to create it
-      try {
-        await getAccount(connection, treasuryUsdcAccount)
-      } catch (e) {
-        // Treasury account doesn't exist, add instruction to create it
-        transaction.add(
-          createAssociatedTokenAccountInstruction(
-            publicKey,
-            treasuryUsdcAccount,
-            treasuryPubkey,
-            usdcMint
-          )
-        )
-      }
-
-      // Add transfer instruction
-      const transferAmount = Math.floor(usdAmount * Math.pow(10, USDC_DECIMALS))
-      transaction.add(
-        createTransferInstruction(
-          userUsdcAccount,
-          treasuryUsdcAccount,
-          publicKey,
-          transferAmount
-        )
-      )
-
-      // Send transaction
-      const signature = await sendTransaction(transaction, connection)
-      console.log('Transaction sent:', signature)
-
-      toast.info('Processing USDC payment...', {
-        description: 'Waiting for blockchain confirmation'
-      })
-
-      // Wait for confirmation
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed')
-
-      if (confirmation.value.err) {
-        throw new Error('Transaction failed')
-      }
-
-      console.log('Payment confirmed!')
-
-      // Credit tokens via API
-      const response = await apiFetch('/api/payments/credit-tokens', {
-        method: 'POST',
-        body: JSON.stringify({
-          walletAddress: publicKey.toString(),
-          tokens: tokens,
-          paymentMethod: 'USDC',
-          paymentAmount: usdAmount,
-          usdAmount: usdAmount,
-          transactionSignature: signature
-        })
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast.success('Purchase successful!', {
-          description: `${tokens} CHESS tokens have been credited to your account`
-        })
-
-        setTimeout(() => {
-          onClose()
-          window.location.reload()
-        }, 2000)
-      } else {
-        throw new Error(result.error || 'Failed to credit tokens')
-      }
-
-    } catch (error) {
-      console.error('Payment error:', error)
-      toast.error('Payment failed', {
-        description: error.message || 'Please try again'
-      })
-    } finally {
-      setLoading(false)
-      setProcessingTx(false)
-    }
-  }
-
-  const handlePurchase = () => {
-    if (paymentMethod === 'SOL') {
-      handlePurchaseWithSOL()
-    } else {
-      handlePurchaseWithUSDC()
     }
   }
 
@@ -313,7 +98,7 @@ export default function TokenPurchaseV2({ onClose }) {
                 Buy CHESS Tokens
               </CardTitle>
               <CardDescription className="text-slate-400">
-                Pay with SOL or USDC • 1 CHESS = $0.01 USD
+                Pay with TON or Stars ⭐ • 1 CHESS = $0.01 USD
               </CardDescription>
             </div>
             <Button variant="ghost" onClick={onClose} className="text-slate-400" disabled={processingTx}>
@@ -321,7 +106,7 @@ export default function TokenPurchaseV2({ onClose }) {
             </Button>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Token Amount Input */}
           <div>
@@ -360,45 +145,43 @@ export default function TokenPurchaseV2({ onClose }) {
             </label>
             <div className="grid grid-cols-2 gap-4">
               <Card
-                className={`cursor-pointer transition-all border-2 ${
-                  paymentMethod === 'SOL'
-                    ? 'border-purple-500 bg-purple-900/20'
+                className={`cursor-pointer transition-all border-2 ${paymentMethod === 'TON'
+                    ? 'border-blue-500 bg-blue-900/20'
                     : 'border-slate-600 bg-slate-700 hover:bg-slate-600'
-                }`}
-                onClick={() => !processingTx && setPaymentMethod('SOL')}
+                  }`}
+                onClick={() => !processingTx && setPaymentMethod('TON')}
               >
                 <CardContent className="p-4 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <span className="text-2xl">◎</span>
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <span className="text-2xl">💎</span>
                   </div>
-                  <div className="text-white font-semibold">Pay with SOL</div>
+                  <div className="text-white font-semibold">Pay with TON</div>
                   <div className="text-xs text-slate-400 mt-1">
-                    1 SOL ≈ ${solPrice.toFixed(0)}
+                    1 TON ≈ ${tonPrice.toFixed(2)}
                   </div>
-                  {paymentMethod === 'SOL' && (
-                    <Badge className="mt-2 bg-purple-500">Selected</Badge>
+                  {paymentMethod === 'TON' && (
+                    <Badge className="mt-2 bg-blue-500">Selected</Badge>
                   )}
                 </CardContent>
               </Card>
 
               <Card
-                className={`cursor-pointer transition-all border-2 ${
-                  paymentMethod === 'USDC'
-                    ? 'border-blue-500 bg-blue-900/20'
+                className={`cursor-pointer transition-all border-2 ${paymentMethod === 'STARS'
+                    ? 'border-yellow-500 bg-yellow-900/20'
                     : 'border-slate-600 bg-slate-700 hover:bg-slate-600'
-                }`}
-                onClick={() => !processingTx && setPaymentMethod('USDC')}
+                  }`}
+                onClick={() => !processingTx && setPaymentMethod('STARS')}
               >
                 <CardContent className="p-4 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <DollarSign className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Star className="h-6 w-6 text-white" />
                   </div>
-                  <div className="text-white font-semibold">Pay with USDC</div>
+                  <div className="text-white font-semibold">Pay with Stars ⭐</div>
                   <div className="text-xs text-slate-400 mt-1">
-                    1 USDC = $1.00
+                    Telegram Stars
                   </div>
-                  {paymentMethod === 'USDC' && (
-                    <Badge className="mt-2 bg-blue-500">Selected</Badge>
+                  {paymentMethod === 'STARS' && (
+                    <Badge className="mt-2 bg-yellow-500">Selected</Badge>
                   )}
                 </CardContent>
               </Card>
@@ -430,13 +213,7 @@ export default function TokenPurchaseV2({ onClose }) {
                   <div className="flex justify-between">
                     <span className="text-slate-300">You Pay:</span>
                     <span className="text-green-400 font-bold text-lg">
-                      {paymentAmountDisplay} {paymentMethod}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">Payment to:</span>
-                    <span className="text-slate-400">
-                      {TREASURY_WALLET.slice(0, 6)}...{TREASURY_WALLET.slice(-6)}
+                      {paymentAmountDisplay} {paymentMethod === 'STARS' ? '⭐ Stars' : 'TON'}
                     </span>
                   </div>
                 </div>
@@ -447,8 +224,8 @@ export default function TokenPurchaseV2({ onClose }) {
           {/* Purchase Button */}
           <Button
             onClick={handlePurchase}
-            disabled={loading || processingTx || !tokenAmount || parseFloat(tokenAmount) < 100 || !publicKey}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold h-12 text-lg"
+            disabled={loading || processingTx || !tokenAmount || parseFloat(tokenAmount) < 100}
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold h-12 text-lg"
           >
             {processingTx ? (
               <>
@@ -472,8 +249,8 @@ export default function TokenPurchaseV2({ onClose }) {
               <div className="text-sm text-slate-300">
                 <p className="font-semibold text-blue-300 mb-1">How it works:</p>
                 <ol className="list-decimal list-inside space-y-1 text-xs">
-                  <li>You send SOL/USDC to our treasury wallet</li>
-                  <li>Transaction is verified on Solana blockchain</li>
+                  <li>Select payment method: TON or Telegram Stars</li>
+                  <li>Transaction is verified on TON blockchain</li>
                   <li>CHESS tokens are credited to your account instantly</li>
                   <li>Use tokens to play PvP games and earn more!</li>
                 </ol>
