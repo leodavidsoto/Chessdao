@@ -1,0 +1,30 @@
+# ChessDAO TON - Environment Configuration
+# Copy this file to .env and fill in your values
+
+# ==============================================
+# WALLET CONFIGURATION (REQUIRED FOR DEPLOY)
+# ==============================================
+
+# Your wallet's 24-word seed phrase (mnemonic)
+# ⚠️ NEVER share this with anyone!
+# ⚠️ NEVER commit this file to git!
+WALLET_MNEMONIC="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24"
+
+# ==============================================
+# NETWORK CONFIGURATION
+# ==============================================
+
+# Network to deploy to: testnet or mainnet
+NETWORK=mainnet
+
+# TonCenter API key (get one at https://toncenter.com/)
+# Free tier: 10 requests/second (sufficient for deploy)
+TONCENTER_API_KEY=
+
+# ==============================================
+# CONTRACT ADDRESSES (FILL AFTER DEPLOY)
+# ==============================================
+
+# These will be filled after successful deployment
+CHESS_TOKEN_ADDRESS=
+GAME_ESCROW_ADDRESS=

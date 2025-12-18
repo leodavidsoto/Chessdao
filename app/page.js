@@ -118,7 +118,7 @@ export default function Home() {
                 <h2>Compra Tokens CHESS</h2>
                 <p>Precio de lanzamiento: <span className="price-highlight">$0.01 USD</span> por token</p>
                 <div className="sale-features">
-                  <span>✓ Paga con SOL o USDC</span>
+                  <span>✓ {telegram.isInTelegram ? 'Paga con TON o Stars ⭐' : 'Paga con SOL o USDC'}</span>
                   <span>✓ Tokens instantáneos</span>
                   <span>✓ Úsalos para apostar</span>
                 </div>
@@ -154,7 +154,7 @@ export default function Home() {
               <div className="feature-icon">🏆</div>
               <div className="feature-content">
                 <h3>Gana Premios</h3>
-                <p>Gana tokens reales en blockchain de Solana</p>
+                <p>Gana tokens reales en blockchain de {telegram.isInTelegram ? 'TON' : 'Solana'}</p>
               </div>
             </div>
             <div className="feature-card">
@@ -233,7 +233,7 @@ export default function Home() {
 
           {/* Footer */}
           <div className="landing-footer">
-            <p>Powered by <span className="solana-text">Solana</span></p>
+            <p>Powered by <span className={telegram.isInTelegram ? 'ton-text' : 'solana-text'}>{telegram.isInTelegram ? 'TON' : 'Solana'}</span></p>
           </div>
         </div>
 
@@ -716,6 +716,13 @@ export default function Home() {
 
           .solana-text {
             background: linear-gradient(135deg, #9945FF, #14F195);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 600;
+          }
+
+          .ton-text {
+            background: linear-gradient(135deg, #0098EA, #00DCDC);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 600;

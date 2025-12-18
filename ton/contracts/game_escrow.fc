@@ -13,6 +13,9 @@
 
 #include "stdlib.fc";
 
+;; Helper: Compare slices
+int equal_slices(slice a, slice b) asm "SDEQ";
+
 ;; Game states
 const int STATE_WAITING = 0;   ;; Waiting for opponent
 const int STATE_ACTIVE = 1;    ;; Game in progress
@@ -130,7 +133,7 @@ const int op::receive_jettons = 0x7362d09c; ;; transfer_notification
         int amount = in_msg_body~load_coins();
         slice from_address = in_msg_body~load_msg_addr();
         
-        throw_unless(100, state == STATE_WAITING | state == STATE_ACTIVE);
+        throw_unless(100, (state == STATE_WAITING) | (state == STATE_ACTIVE));
         throw_unless(101, amount >= bet_amount);
         
         ;; Creator depositing

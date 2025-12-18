@@ -41,7 +41,7 @@ export default function ChessComLayout() {
   const { signAction, isSigning, error: signError, clearError } = useWalletSignature()
 
   // TON wallet (for Telegram Mini App)
-  const { isInTelegram, telegramUser } = useTelegramWebApp()
+  const { isInTelegram, isReady: telegramReady, telegramUser } = useTelegramWebApp()
   const { isConnected: tonConnected, address: tonAddress, balance: tonBalance, actions: tonActions } = useTonConnect()
 
   // Language state (persist to localStorage)

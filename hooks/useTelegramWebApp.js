@@ -20,7 +20,15 @@ export function useTelegramWebApp() {
         // Check if we're inside Telegram WebApp
         const tg = window.Telegram?.WebApp
 
-        if (tg) {
+        // The telegram-web-app.js script creates window.Telegram.WebApp even outside Telegram,
+        // but with empty initData and platform === 'unknown'
+        // We need to verify we're ACTUALLY inside Telegram by checking for real data
+        const isReallyInTelegram = tg && (
+            tg.initData !== '' ||  // Has init data from Telegram
+            (tg.platform && tg.platform !== 'unknown')  // Has a real platform
+        )
+
+        if (isReallyInTelegram) {
             console.log('🔵 Running inside Telegram WebApp')
             setIsInTelegram(true)
             setWebApp(tg)

@@ -229,6 +229,43 @@ export function useTonConnect() {
         connect()
     }, [connect])
 
+    // Send TON transaction
+    const sendTransaction = useCallback(async (toAddress, amount, comment = '') => {
+        const tc = tonConnectRef.current
+        if (!tc || !isConnected) {
+            throw new Error('Wallet not connected')
+        }
+
+        try {
+            // Convert amount to nanoTON (1 TON = 10^9 nanoTON)
+            const nanoAmount = Math.floor(amount * 1e9).toString()
+
+            // Create transaction payload
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 min validity
+                messages: [
+                    {
+                        address: toAddress,
+                        amount: nanoAmount,
+                        payload: comment ? Buffer.from(comment).toString('base64') : undefined
+                    }
+                ]
+            }
+
+            console.log('🔷 Sending transaction:', transaction)
+            const result = await tc.sendTransaction(transaction)
+            console.log('🔷 Transaction sent:', result)
+
+            // Refresh balance after sending
+            setTimeout(() => refreshBalance(), 3000)
+
+            return result
+        } catch (err) {
+            console.error('❌ Transaction error:', err)
+            throw err
+        }
+    }, [isConnected, refreshBalance])
+
     return {
         isConnected,
         isConnecting,
@@ -244,7 +281,8 @@ export function useTonConnect() {
             disconnect,
             refreshBalance,
             getFormattedAddress,
-            retry
+            retry,
+            sendTransaction
         }
     }
 }
