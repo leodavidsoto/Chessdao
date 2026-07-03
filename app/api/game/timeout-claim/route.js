@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server'
-
-// Shared game storage
-const getGamesStorage = () => {
-    if (!global.gamesStorage) {
-        global.gamesStorage = {
-            games: [],
-            gameIdCounter: 1
-        }
-    }
-    return global.gamesStorage
-}
+import { getGame, transition, GameStatus } from '@/lib/gameStore'
+import { requireWalletAuth } from '@/lib/auth'
 
 const DAO_FEE_PERCENTAGE = 0.025
 const TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
- * POST /api/game/timeout-claim - Claim funds from a timed out game
+ * POST /api/game/timeout-claim - Claim a stalled game after the timeout window.
  * Body: { walletAddress, gameId }
+ * Auth: wallet signature for `walletAddress` (CLAIM_TIMEOUT action).
  */
 export async function POST(request) {
     try {
@@ -37,9 +29,15 @@ export async function POST(request) {
             )
         }
 
-        const storage = getGamesStorage()
-        const game = storage.games.find(g => g.gameId === parseInt(gameId))
+        const auth = requireWalletAuth(request, { expectedWallet: walletAddress })
+        if (!auth.authorized) {
+            return NextResponse.json(
+                { success: false, error: auth.error },
+                { status: auth.status }
+            )
+        }
 
+        const game = await getGame(gameId)
         if (!game) {
             return NextResponse.json(
                 { success: false, error: 'Game not found' },
@@ -47,14 +45,14 @@ export async function POST(request) {
             )
         }
 
-        if (game.status !== 'active') {
+        if (game.status !== GameStatus.Active) {
             return NextResponse.json(
                 { success: false, error: 'Game is not active' },
                 { status: 400 }
             )
         }
 
-        // Verify claimer is a player
+        // Only a participant may claim.
         if (walletAddress !== game.player1 && walletAddress !== game.player2) {
             return NextResponse.json(
                 { success: false, error: 'You are not a player in this game' },
@@ -62,7 +60,6 @@ export async function POST(request) {
             )
         }
 
-        // Check if timeout has been reached (30 minutes since game started)
         const timeSinceStart = Date.now() - game.startedAt
         if (timeSinceStart < TIMEOUT_MS) {
             const minutesRemaining = Math.ceil((TIMEOUT_MS - timeSinceStart) / 60000)
@@ -72,29 +69,39 @@ export async function POST(request) {
             )
         }
 
-        // Calculate prizes
         const daoFee = Math.floor(game.totalPot * DAO_FEE_PERCENTAGE)
         const prizePool = game.totalPot - daoFee
 
-        // Award to claimer
-        game.status = 'timeout'
-        game.winner = walletAddress
-        game.endedAt = Date.now()
+        const result = await transition(gameId, GameStatus.Active, {
+            status: GameStatus.Timeout,
+            winner: walletAddress,
+            endedAt: Date.now(),
+        })
+
+        if (!result.ok) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: result.reason === 'not_found' ? 'Game not found' : 'Game already resolved',
+                },
+                { status: result.reason === 'not_found' ? 404 : 409 }
+            )
+        }
 
         console.log(`⏰ Game ${gameId} claimed by timeout. Winner: ${walletAddress}, Prize: ${prizePool} CHESS`)
 
         return NextResponse.json({
             success: true,
-            game,
+            game: result.game,
             prizeAmount: prizePool,
             daoFee,
             winner: walletAddress,
-            signature: `timeout_claim_${gameId}_${Date.now()}`
+            signature: `timeout_claim_${gameId}_${Date.now()}`,
         })
     } catch (error) {
         console.error('Error claiming timeout:', error)
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: 'Failed to claim timeout' },
             { status: 500 }
         )
     }

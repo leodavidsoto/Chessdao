@@ -48,19 +48,10 @@ const nextConfig = {
     maxInactiveAge: 10000,
     pagesBufferLength: 2,
   },
-  // No CSP headers - they block wallet adapters
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "*" },
-        ],
-      },
-    ];
-  },
+  // CORS is handled dynamically in middleware.js (origin allowlist) because a
+  // static wildcard `Access-Control-Allow-Origin: *` let any website call this
+  // API on a logged-in user's behalf. Configure allowed origins via the
+  // ALLOWED_ORIGINS environment variable.
 };
 
 module.exports = nextConfig;

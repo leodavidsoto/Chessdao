@@ -85,17 +85,34 @@ async function setupIndexes() {
 
         // Games
         console.log('Setting up games collection...')
+        // Unique game id — the escrow/settlement logic relies on gameId being
+        // a stable primary key for atomic status transitions.
+        await db.collection('games').createIndex(
+            { gameId: 1 },
+            { unique: true, name: 'idx_game_id_unique' }
+        )
         await db.collection('games').createIndex(
             { status: 1, createdAt: -1 },
             { name: 'idx_status_date' }
         )
         await db.collection('games').createIndex(
-            { 'players': 1 },
-            { name: 'idx_players' }
+            { player1: 1, status: 1 },
+            { name: 'idx_player1_status' }
         )
         await db.collection('games').createIndex(
-            { creator: 1, status: 1 },
-            { name: 'idx_creator_status' }
+            { player2: 1, status: 1 },
+            { name: 'idx_player2_status' }
+        )
+
+        // TON payments - idempotency for on-chain payment verification.
+        console.log('Setting up ton_payments collection...')
+        await db.collection('ton_payments').createIndex(
+            { txHash: 1 },
+            { unique: true, name: 'idx_ton_txhash_unique' }
+        )
+        await db.collection('ton_payments').createIndex(
+            { paymentId: 1 },
+            { name: 'idx_ton_payment_id' }
         )
 
         // User profiles

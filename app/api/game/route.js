@@ -1,60 +1,9 @@
 import { NextResponse } from 'next/server'
-
-// Shared game storage - persists across API calls
-const getGamesStorage = () => {
-    if (!global.gamesStorage) {
-        global.gamesStorage = {
-            games: [
-                // Pre-populated demo games for better UX
-                {
-                    gameId: 1,
-                    player1: 'DemoPlayer1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-                    player1Username: 'GrandMaster_Rex',
-                    player2: null,
-                    betAmount: 150,
-                    totalPot: 150,
-                    timeControl: '5+0',
-                    title: 'Blitz Battle - 150 CHESS',
-                    status: 'waiting',
-                    winner: null,
-                    createdAt: Date.now() - 300000,
-                    startedAt: null,
-                    endedAt: null
-                },
-                {
-                    gameId: 2,
-                    player1: 'DemoPlayer2xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-                    player1Username: 'ChessQueen_99',
-                    player2: null,
-                    betAmount: 75,
-                    totalPot: 75,
-                    timeControl: '10+5',
-                    title: 'Rapid Match - 75 CHESS',
-                    status: 'waiting',
-                    winner: null,
-                    createdAt: Date.now() - 600000,
-                    startedAt: null,
-                    endedAt: null
-                }
-            ],
-            gameIdCounter: 3
-        }
-    }
-    return global.gamesStorage
-}
-
-// Game status enum
-const GameStatus = {
-    Waiting: 'waiting',
-    Active: 'active',
-    Completed: 'completed',
-    Draw: 'draw',
-    Cancelled: 'cancelled',
-    Timeout: 'timeout'
-}
+import { createGame, listGames, countByStatus, GameStatus } from '@/lib/gameStore'
+import { requireWalletAuth } from '@/lib/auth'
 
 /**
- * GET /api/game - Get all games or filter by status
+ * GET /api/game - List games, optionally filtered by status and/or player.
  */
 export async function GET(request) {
     try {
@@ -62,50 +11,38 @@ export async function GET(request) {
         const status = searchParams.get('status')
         const walletAddress = searchParams.get('wallet')
 
-        const storage = getGamesStorage()
-        let filteredGames = [...storage.games]
-
-        // Filter by status
-        if (status) {
-            filteredGames = filteredGames.filter(g => g.status === status)
-        }
-
-        // Filter by player wallet
-        if (walletAddress) {
-            filteredGames = filteredGames.filter(g =>
-                g.player1 === walletAddress || g.player2 === walletAddress
-            )
-        }
-
-        // Sort by creation date (newest first)
-        filteredGames.sort((a, b) => b.createdAt - a.createdAt)
+        const games = await listGames({ status, wallet: walletAddress })
+        const [activeGames, waitingGames] = await Promise.all([
+            countByStatus(GameStatus.Active),
+            countByStatus(GameStatus.Waiting),
+        ])
 
         return NextResponse.json({
             success: true,
-            games: filteredGames,
-            total: filteredGames.length,
-            activeGames: storage.games.filter(g => g.status === 'active').length,
-            waitingGames: storage.games.filter(g => g.status === 'waiting').length
+            games,
+            total: games.length,
+            activeGames,
+            waitingGames,
         })
     } catch (error) {
         console.error('Error fetching games:', error)
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: 'Failed to fetch games' },
             { status: 500 }
         )
     }
 }
 
 /**
- * POST /api/game - Create a new game
+ * POST /api/game - Create a new game.
  * Body: { walletAddress, betAmount, timeControl, gameTitle, username }
+ * Auth: wallet signature for `walletAddress` (START_GAME_BET action).
  */
 export async function POST(request) {
     try {
         const body = await request.json()
         const { walletAddress, betAmount, timeControl, gameTitle, username } = body
 
-        // Validations
         if (!walletAddress) {
             return NextResponse.json(
                 { success: false, error: 'Wallet address is required' },
@@ -113,51 +50,43 @@ export async function POST(request) {
             )
         }
 
-        if (!betAmount || betAmount <= 0) {
+        const auth = requireWalletAuth(request, { expectedWallet: walletAddress })
+        if (!auth.authorized) {
             return NextResponse.json(
-                { success: false, error: 'Bet amount must be greater than 0' },
+                { success: false, error: auth.error },
+                { status: auth.status }
+            )
+        }
+
+        const amount = Number(betAmount)
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return NextResponse.json(
+                { success: false, error: 'Bet amount must be a positive number' },
                 { status: 400 }
             )
         }
 
-        const storage = getGamesStorage()
-
-        // Create new game
-        const newGame = {
-            gameId: storage.gameIdCounter++,
+        const game = await createGame({
             player1: walletAddress,
-            player1Username: username || `Player_${walletAddress.slice(0, 6)}`,
-            player2: null,
-            player2Username: null,
-            betAmount: betAmount,
-            totalPot: betAmount,
-            timeControl: timeControl || '10+0',
-            title: gameTitle || `Match #${storage.gameIdCounter - 1} - ${betAmount} CHESS`,
-            status: GameStatus.Waiting,
-            winner: null,
-            createdAt: Date.now(),
-            startedAt: null,
-            endedAt: null,
-            moves: [],
-            fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
-        }
+            player1Username: username,
+            betAmount: amount,
+            timeControl,
+            title: gameTitle,
+        })
 
-        storage.games.push(newGame)
-
-        console.log(`🎮 Game ${newGame.gameId} created by ${username || walletAddress.slice(0, 8)} with ${betAmount} CHESS bet`)
+        console.log(`🎮 Game ${game.gameId} created by ${username || walletAddress.slice(0, 8)} with ${amount} CHESS bet`)
 
         return NextResponse.json({
             success: true,
-            gameId: newGame.gameId,
-            game: newGame,
-            signature: `create_game_${newGame.gameId}_${Date.now()}`
+            gameId: game.gameId,
+            game,
+            signature: `create_game_${game.gameId}_${Date.now()}`,
         })
     } catch (error) {
         console.error('Error creating game:', error)
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: 'Failed to create game' },
             { status: 500 }
         )
     }
 }
-
