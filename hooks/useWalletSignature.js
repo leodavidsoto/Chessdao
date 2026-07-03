@@ -13,25 +13,40 @@ export function useWalletSignature() {
     const [lastSignature, setLastSignature] = useState(null)
     const [error, setError] = useState(null)
 
-    // Mensajes descriptivos por tipo de acción
+    // Mensajes descriptivos por tipo de acción.
+    // NOTA: el mensaje incluye la dirección COMPLETA de la wallet y una marca de
+    // tiempo ISO. El backend (lib/auth.js) exige ambas para verificar la firma:
+    // la dirección completa vincula la firma a la wallet y el timestamp evita
+    // ataques de repetición (replay). No acortar `publicKey` aquí.
+    const fullWallet = () => publicKey?.toString() || ''
+
     const ACTION_MESSAGES = {
         START_GAME_BET: (data) =>
-            `Confirmar inicio de partida con apuesta de ${data?.amount || 0} CHESS tokens.\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`,
+            `Confirmar inicio de partida con apuesta de ${data?.amount || 0} CHESS tokens.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
 
         BUY_TOKENS: (data) =>
-            `Confirmar compra de ${data?.amount || 0} CHESS tokens.\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`,
+            `Confirmar compra de ${data?.amount || 0} CHESS tokens.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
 
         OPEN_LOOTBOX: (data) =>
-            `Confirmar apertura de Loot Box ${data?.type || 'Normal'}.\nCosto: ${data?.cost || 0} CHESS tokens.\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`,
+            `Confirmar apertura de Loot Box ${data?.type || 'Normal'}.\nCosto: ${data?.cost || 0} CHESS tokens.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
 
         SEND_CHALLENGE: (data) =>
-            `Enviar desafío a ${data?.opponent || 'oponente'}.\nApuesta: ${data?.amount || 0} CHESS tokens.\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`,
+            `Enviar desafío a ${data?.opponent || 'oponente'}.\nApuesta: ${data?.amount || 0} CHESS tokens.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
 
         TRANSFER_TOKENS: (data) =>
-            `Transferir ${data?.amount || 0} CHESS tokens a ${data?.recipient?.slice(0, 8) || 'destinatario'}...\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`,
+            `Transferir ${data?.amount || 0} CHESS tokens a ${data?.recipient?.slice(0, 8) || 'destinatario'}...\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
+
+        JOIN_GAME: (data) =>
+            `Confirmar unión a la partida #${data?.gameId ?? ''} con apuesta de ${data?.amount || 0} CHESS tokens.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
+
+        CANCEL_GAME: (data) =>
+            `Confirmar cancelación de la partida #${data?.gameId ?? ''}.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
+
+        CLAIM_TIMEOUT: (data) =>
+            `Reclamar partida #${data?.gameId ?? ''} por timeout.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`,
 
         GENERIC: (data) =>
-            `Confirmar acción en ChessDAO.\n\nWallet: ${publicKey?.toString()?.slice(0, 8)}...\nFecha: ${new Date().toISOString()}`
+            `Confirmar acción en ChessDAO.\n\nWallet: ${fullWallet()}\nFecha: ${new Date().toISOString()}`
     }
 
     /**
@@ -109,6 +124,7 @@ export function useWalletSignature() {
             return {
                 signature: signatureBase58,
                 message,
+                wallet: publicKey.toString(),
                 valid: true
             }
 
